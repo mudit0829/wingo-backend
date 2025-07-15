@@ -1,10 +1,21 @@
 const Round = require("./models/Round");
+const Bet = require("./models/Bet");
 
-// Utility to randomly return "Red", "Green", or "Violet"
 function generateResult() {
   const choices = ["Red", "Green", "Violet"];
   const index = Math.floor(Math.random() * choices.length);
   return choices[index];
+}
+
+async function settleBets(roundId, result) {
+  const bets = await Bet.find({ roundId });
+
+  for (let bet of bets) {
+    bet.status = bet.color === result ? "Win" : "Lose";
+    await bet.save();
+  }
+
+  console.log(`🎯 Settled ${bets.length} bets for round ${roundId}`);
 }
 
 async function endLastRound() {
@@ -16,14 +27,16 @@ async function endLastRound() {
   lastRound.result = result;
   await lastRound.save();
 
-  console.log(`🎯 Round ${lastRound.roundId} ended. Result: ${result}`);
+  await settleBets(lastRound.roundId, result);
+
+  console.log(`🏁 Round ${lastRound.roundId} ended with result: ${result}`);
 }
 
 async function createNewRound() {
-  await endLastRound(); // Close previous round before starting a new one
+  await endLastRound();
 
   const now = new Date();
-  const endTime = new Date(now.getTime() + 30000); // 30 sec round
+  const endTime = new Date(now.getTime() + 30000);
 
   const round = new Round({
     roundId: Date.now().toString(),
@@ -37,8 +50,8 @@ async function createNewRound() {
 }
 
 function startGameLoop() {
-  createNewRound(); // Start immediately
-  setInterval(createNewRound, 30000); // Every 30 sec
+  createNewRound();
+  setInterval(createNewRound, 30000);
 }
 
 module.exports = { startGameLoop };
