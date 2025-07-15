@@ -56,5 +56,27 @@ router.get("/create-test-users", async (req, res) => {
     res.status(500).send("❌ Error creating users");
   }
 });
+const bcrypt = require("bcryptjs");
+
+// TEMP: Create test users with encrypted passwords
+router.get("/create-test-users", async (req, res) => {
+  try {
+    const hashedAdmin = await bcrypt.hash("admin", 10);
+    const hashedUser = await bcrypt.hash("user", 10);
+
+    await User.deleteMany(); // clear existing users
+
+    await User.create([
+      { username: "admin", password: hashedAdmin, role: "admin" },
+      { username: "user", password: hashedUser, role: "user" }
+    ]);
+
+    res.send("✅ Test users created with encrypted passwords.");
+  } catch (err) {
+    console.error("❌ Error creating test users:", err);
+    res.status(500).send("Failed to create test users.");
+  }
+});
+
 
 module.exports = router;
