@@ -1,39 +1,31 @@
 const express = require("express");
 const router = express.Router();
 const Bet = require("../models/Bet");
-const Round = require("../models/Round");
 
-// POST: Place a new bet
+// Place a new bet
 router.post("/", async (req, res) => {
-  const { username, color, amount } = req.body;
+  const { username, color, amount, roundId } = req.body;
 
   try {
-    // Get latest round (most recent with no result yet)
-    const currentRound = await Round.findOne({ result: null }).sort({ startTime: -1 });
-
-    if (!currentRound) {
-      return res.status(400).json({ message: "No active round found" });
-    }
-
-    const bet = new Bet({
-      username,
-      color,
-      amount,
-      roundId: currentRound.roundId
-    });
-
+    const roundTime = new Date(); // or fetch from rounds DB if needed
+    const bet = new Bet({ username, color, amount, roundId, roundTime });
     await bet.save();
     res.json({ message: "Bet placed successfully", bet });
   } catch (err) {
-    console.error("❌ Error placing bet:", err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Error placing bet" });
   }
 });
 
-// GET: List all bets (admin/debug)
-router.get("/", async (req, res) => {
-  const bets = await Bet.find().sort({ createdAt: -1 });
-  res.json(bets);
+// Get all bets of a specific user (limit to last 10)
+router.get("/:username", async (req, res) => {
+  try {
+    const bets = await Bet.find({ username: req.params.username })
+      .sort({ createdAt: -1 })
+      .limit(10);
+    res.json(bets);
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching bet history" });
+  }
 });
 
 module.exports = router;
