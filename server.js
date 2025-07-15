@@ -2,27 +2,20 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const { startGameLoop } = require("./gameLoop");
+const app = express();
 
 dotenv.config();
-
-const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// API Routes
+// API routes
 app.use("/api/users", require("./routes/userRoutes"));
-app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/bets", require("./routes/betRoutes"));
-app.use("/api/rounds", require("./routes/roundRoutes")); // ✅ NEW
+app.use("/api/rounds", require("./routes/roundRoutes"));
+app.use("/api/auth", require("./routes/authRoutes")); // optional if login split out
 
-// Default route for health check
-app.get("/", (req, res) => {
-  res.send("✅ Backend is working!");
-});
-
-// Connect to MongoDB and start the game loop
+// MongoDB connection and start server
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
@@ -30,7 +23,12 @@ mongoose.connect(process.env.MONGO_URI)
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      startGameLoop(); // 🟢 Starts the 30-second round cycle
     });
+
+    // ✅ Start round scheduler ONCE after DB is ready
+    const runRoundScheduler = require("./roundManager");
+    runRoundScheduler();
   })
-  .catch(err => console.error("❌ MongoDB connection error:", err));
+  .catch(err => {
+    console.error("❌ MongoDB connection error:", err);
+  });
