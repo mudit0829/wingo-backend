@@ -4,6 +4,12 @@ const app = express();
 require("dotenv").config();
 
 app.use(express.json());
+
+// 🔽 TEST ROUTE
+app.get("/", (req, res) => {
+  res.send("✅ Backend is working!");
+});
+
 app.use("/api/users", require("./routes/userRoutes"));
 
 mongoose.connect(process.env.MONGO_URI)
@@ -13,6 +19,3 @@ mongoose.connect(process.env.MONGO_URI)
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch(err => console.error(err));
-app.get("/", (req, res) => {
-  res.send("Backend is working");
-});
