@@ -1,3 +1,13 @@
+const express = require("express");
+const router = express.Router();
+const User = require("../models/User");
+
+// GET all users
+router.get("/", async (req, res) => {
+  const users = await User.find();
+  res.json(users);
+});
+
 // One-time route to create test users
 router.get("/create-test-users", async (req, res) => {
   try {
@@ -12,3 +22,5 @@ router.get("/create-test-users", async (req, res) => {
     res.status(500).send("❌ Error creating users");
   }
 });
+
+module.exports = router;
