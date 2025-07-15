@@ -2,13 +2,17 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 
-// GET all users
+// Route to get all users
 router.get("/", async (req, res) => {
-  const users = await User.find();
-  res.json(users);
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (err) {
+    res.status(500).send("Error fetching users");
+  }
 });
 
-// One-time route to create test users
+// ✅ One-time route to create test users
 router.get("/create-test-users", async (req, res) => {
   try {
     await User.deleteMany({});
