@@ -1,108 +1,37 @@
 const express = require("express");
-const router = express.Router();
 const Bet = require("../models/Bet");
-const Round = require("../models/Round");
+const router = express.Router();
 
-// Place a new bet
+// Place bet
 router.post("/", async (req, res) => {
   try {
-    const { username, color, amount, roundId } = req.body;
-
-    const round = await Round.findOne({ roundId });
-    if (!round) {
-      return res.status(404).json({ message: "Round not found" });
-    }
-
-    const newBet = new Bet({
-      username,
-      color,
-      amount,
-      roundId,
-      roundTime: round.startTime,
-      status: "Pending",
-      resultColor: null,
-    });
-
-    await newBet.save();
-    res.status(201).json({ message: "Bet placed successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Get all bets - for admin
-router.get("/", async (req, res) => {
-  try {
-    const bets = await Bet.find().sort({ createdAt: -1 });
-    res.json(bets);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Update result of round and user bet status
-router.post("/set-result", async (req, res) => {
-  try {
-    const { roundId, result } = req.body;
-
-    // Update round result
-    const round = await Round.findOneAndUpdate(
-      { roundId },
-      { result },
-      { new: true }
-    );
-
-    if (!round) {
-      return res.status(404).json({ message: "Round not found" });
-    }
-
-    // Update user bets
-    const bets = await Bet.find({ roundId });
-
-    for (let bet of bets) {
-      bet.resultColor = result;
-      bet.status = bet.color === result ? "Won" : "Lost";
-      await bet.save();
-    }
-
-    res.json({ message: "Result updated and bets settled" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-// Get user's bets (POST method)
-router.post("/user", async (req, res) => {
-  const { username } = req.body;
-  if (!username) return res.status(400).json({ message: "Username is required" });
-
-  try {
-    const bets = await Bet.find({ username }).sort({ createdAt: -1 });
-    res.json(bets);
+    const { username, color, amount } = req.body;
+    const bet = new Bet({ username, color, amount, status: "Pending" });
+    await bet.save();
+    res.json({ message: "Bet placed!", bet });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error placing bet" });
   }
 });
 
-});
-
-// Get user profit/loss
-router.get("/user-stats/:username", async (req, res) => {
+// ✅ NEW: Get bets for specific user
+router.get("/:username", async (req, res) => {
   try {
     const { username } = req.params;
     const bets = await Bet.find({ username });
+    res.json(bets);
+  } catch (err) {
+    res.status(500).json({ message: "Server error fetching bets" });
+  }
+});
 
-    let profit = 0;
-    for (let bet of bets) {
-      if (bet.status === "Won") {
-        profit += bet.amount * 2;
-      } else if (bet.status === "Lost") {
-        profit -= bet.amount;
-      }
-    }
-
-    res.json({ username, profit });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+// ✅ Optional: all bets (admin use)
+router.get("/", async (req, res) => {
+  try {
+    const bets = await Bet.find();
+    res.json(bets);
+  } catch (err) {
+    res.status(500).json({ message: "Server error fetching all bets" });
   }
 });
 
