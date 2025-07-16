@@ -1,38 +1,20 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const dotenv = require("dotenv");
-
-const authRoutes = require("./routes/authRoutes");
-const betRoutes = require("./routes/betRoutes");
-const roundRoutes = require("./routes/roundRoutes");
-
-dotenv.config();
+// backend/server.js
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/bets", betRoutes);
-app.use("/api/rounds", roundRoutes);
+app.use('/api/auth', require('./routes/authRoutes'));
+// ... your other routes
 
-// Root route
-app.get("/", (req, res) => {
-  res.send("WinGo Backend Running");
-});
-
-// Connect to MongoDB and start server
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => {
-  console.log("MongoDB connected");
-  const port = process.env.PORT || 5000;
-  app.listen(port, () => console.log(`Server running on port ${port}`));
-})
-.catch(err => {
-  console.error("MongoDB connection error:", err);
-});
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    app.listen(process.env.PORT || 5000, () =>
+      console.log('Server & DB connected')
+    );
+  })
+  .catch(console.error);
