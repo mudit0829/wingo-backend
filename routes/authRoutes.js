@@ -1,22 +1,30 @@
 const express = require("express");
-const bcrypt = require("bcryptjs");
 const router = express.Router();
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
-// POST /api/auth/login
+// Login route
 router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
   try {
-    const { username, password } = req.body;
     const user = await User.findOne({ username });
-    if (!user) return res.status(401).json({ message: "Invalid username or password" });
+    if (!user) return res.status(400).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid username or password" });
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    res.json({ username: user.username, role: user.role });
+    // Optional: Token generation if needed later
+    // const token = jwt.sign({ id: user._id }, "secret", { expiresIn: "1h" });
+
+    res.json({
+      username: user.username,
+      role: user.role
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error during login" });
   }
 });
 
