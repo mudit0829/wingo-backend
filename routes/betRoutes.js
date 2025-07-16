@@ -2,36 +2,38 @@ const express = require("express");
 const Bet = require("../models/Bet");
 const router = express.Router();
 
-// ✅ 1. Place a new bet
+// POST /api/bets – place a bet
 router.post("/", async (req, res) => {
+  const { username, color, amount } = req.body;
   try {
-    const { username, color, amount } = req.body;
     const bet = new Bet({ username, color, amount, status: "Pending" });
     await bet.save();
     res.json({ message: "Bet placed!", bet });
   } catch (err) {
-    res.status(500).json({ message: "Server error placing bet" });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ 2. Get bets for a specific user (fix: clear route path)
+// GET /api/bets/user/:username – retrieve bets for a user
 router.get("/user/:username", async (req, res) => {
   try {
-    const { username } = req.params;
-    const bets = await Bet.find({ username });
+    const bets = await Bet.find({ username: req.params.username }).sort({ createdAt: -1 });
     res.json(bets);
   } catch (err) {
-    res.status(500).json({ message: "Server error fetching user bets" });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// ✅ 3. Get all bets (admin)
+// GET /api/bets – get all bets (admin purpose)
 router.get("/", async (req, res) => {
   try {
-    const bets = await Bet.find();
+    const bets = await Bet.find().sort({ createdAt: -1 });
     res.json(bets);
   } catch (err) {
-    res.status(500).json({ message: "Server error fetching all bets" });
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
