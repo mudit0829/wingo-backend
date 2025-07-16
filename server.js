@@ -9,13 +9,11 @@ app.use(express.json());
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/bets", require("./routes/betRoutes"));
-app.use("/api/rounds", require("./routes/roundRoutes"));
-app.use("/api/users", require("./routes/userRoutes"));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB connected");
-    app.listen(process.env.PORT || 5000, () => console.log("🚀 Server started"));
-    require("./roundManager")();
+    console.log("MongoDB connected");
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
-  .catch(err => console.error("❌ MongoDB error:", err));
+  .catch(err => console.error(err));
