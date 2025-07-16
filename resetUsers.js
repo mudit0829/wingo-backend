@@ -1,45 +1,22 @@
-require("dotenv").config();
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
+const User = require("../models/User");
 
-const User = require("./models/User");
+dotenv.config();
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(async () => {
-    console.log("Mongo connected ✅");
+async function seedUsers() {
+  await mongoose.connect(process.env.MONGO_URI);
+  await User.deleteMany({}); // Clear all users (optional)
 
-    const users = [
-      {
-        username: "admin",
-        password: "admin123",
-        role: "admin",
-      },
-      {
-        username: "user",
-        password: "user123",
-        role: "user",
-      },
-    ];
+  const users = [
+    { username: "admin", password: await bcrypt.hash("admin123", 10), role: "admin" },
+    { username: "user", password: await bcrypt.hash("user123", 10), role: "user" },
+  ];
 
-    for (const user of users) {
-      const existing = await User.findOne({ username: user.username });
+  await User.insertMany(users);
+  console.log("Users created successfully!");
+  process.exit();
+}
 
-      const hashedPassword = await bcrypt.hash(user.password, 10);
-
-      if (existing) {
-        existing.password = hashedPassword;
-        existing.role = user.role;
-        await existing.save();
-        console.log(`✅ Updated user: ${user.username}`);
-      } else {
-        await User.create({ ...user, password: hashedPassword });
-        console.log(`✅ Created user: ${user.username}`);
-      }
-    }
-
-    mongoose.disconnect();
-  })
-  .catch((err) => {
-    console.error("Mongo error ❌", err);
-  });
+seedUsers();
