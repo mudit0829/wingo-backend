@@ -1,27 +1,14 @@
 const express = require("express");
-const Round = require("../models/Round");
-
 const router = express.Router();
-
-// Generate random color result (Red, Green, Violet)
-function getRandomResult() {
-  const options = ["Red", "Green", "Violet"];
-  return options[Math.floor(Math.random() * options.length)];
-}
+const { generateResult } = require("../cron/generateResult");
 
 router.post("/generate", async (req, res) => {
   try {
-    const result = getRandomResult();
-
-    const newRound = new Round({
-      result,
-      createdAt: new Date(),
-    });
-
-    await newRound.save();
-    res.status(201).json({ message: "Round result generated", result });
+    const result = await generateResult();
+    res.status(200).json({ message: "Result generated", data: result });
   } catch (err) {
-    res.status(500).json({ message: "Error generating result", error: err });
+    console.error("❌ API Error generating result:", err.message);
+    res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
 });
 
