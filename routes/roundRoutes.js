@@ -1,14 +1,15 @@
-const express = require('express');
+// routes/roundRoutes.js
+const express = require("express");
 const router = express.Router();
-const Round = require('../models/Round');
+const Round = require("../models/Round");
 
-// Get all rounds sorted latest first
-router.get('/', async (req, res) => {
+// GET all rounds
+router.get("/", async (req, res) => {
   try {
-    const rounds = await Round.find().sort({ timestamp: -1 }).limit(50);
+    const rounds = await Round.find().sort({ timestamp: -1 }).limit(10);
     res.json(rounds);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch rounds' });
+  } catch (err) {
+    res.status(500).json({ message: "Error fetching rounds", error: err.message });
   }
 });
 
