@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { generateResult } = require("../cron/generateResult");
+const { generateResult } = require("../utils/generateResult");
 
 router.post("/generate", async (req, res) => {
   try {
