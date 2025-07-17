@@ -1,17 +1,21 @@
-// routes/cronRoutes.js
 const express = require("express");
 const router = express.Router();
-const Round = require("../models/Round");
+const gameLoop = require("../gameLoop");
 const generateResult = require("../utils/generateResult");
 
-// Generate result manually (admin)
+// Start game loop timer
+router.post("/start-timer", (req, res) => {
+  gameLoop.start();
+  res.json({ message: "Timer started." });
+});
+
+// Manual result generation
 router.post("/generate-result", async (req, res) => {
   try {
-    const result = await generateResult(); // function returns { roundId, result }
-    res.json({ success: true, ...result });
-  } catch (err) {
-    console.error("Generate Result Error:", err);
-    res.status(500).json({ success: false, error: "Internal Server Error" });
+    const result = await generateResult();
+    res.json({ message: "Result generated.", result });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to generate result." });
   }
 });
 
