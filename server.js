@@ -15,6 +15,8 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+const cronRoutes = require("./routes/cronRoutes");
+app.use("/api/cron", cronRoutes);
 
 // Routes
 app.use("/api/auth", authRoutes);
