@@ -11,5 +11,15 @@ router.get("/", async (req, res) => {
     res.status(500).json({ message: "Error fetching rounds" });
   }
 });
+router.post('/generate', async (req, res) => {
+  try {
+    const round = await generateResult(); // <- this must be imported
+    res.json({ message: 'Result generated', result: round.result });
+  } catch (err) {
+    console.error('Error generating result:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 module.exports = router;
