@@ -5,7 +5,8 @@ const dotenv = require("dotenv");
 const authRoutes = require("./routes/authRoutes");
 const betRoutes = require("./routes/betRoutes");
 const roundRoutes = require("./routes/roundRoutes");
-const cronRoutes = require("./routes/cronRoutes"); // <-- Include cronRoutes
+const cronRoutes = require("./routes/cronRoutes");
+app.use("/api/cron", cronRoutes);   // <-- Include cronRoutes
 
 dotenv.config();
 
