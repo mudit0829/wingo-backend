@@ -1,22 +1,32 @@
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
-const User = require("../models/User");
+const dotenv = require("dotenv");
+const User = require("./models/User");
 
 dotenv.config();
 
-async function seedUsers() {
-  await mongoose.connect(process.env.MONGO_URI);
-  await User.deleteMany({}); // Clear all users (optional)
+const MONGO_URI = process.env.MONGO_URI;
 
-  const users = [
-    { username: "admin", password: await bcrypt.hash("admin123", 10), role: "admin" },
-    { username: "user", password: await bcrypt.hash("user123", 10), role: "user" },
-  ];
+mongoose.connect(MONGO_URI)
+  .then(async () => {
+    console.log("Connected to MongoDB");
 
-  await User.insertMany(users);
-  console.log("Users created successfully!");
-  process.exit();
-}
+    // Clear existing users
+    await User.deleteMany({});
 
-seedUsers();
+    // Create new admin and user
+    const adminPassword = await bcrypt.hash("admin123", 10);
+    const userPassword = await bcrypt.hash("user123", 10);
+
+    const users = [
+      { username: "admin", password: adminPassword, role: "admin" },
+      { username: "user", password: userPassword, role: "user" },
+    ];
+
+    await User.insertMany(users);
+    console.log("✅ Admin and User created with hashed passwords.");
+    mongoose.disconnect();
+  })
+  .catch((err) => {
+    console.error("Error connecting to MongoDB:", err);
+  });
