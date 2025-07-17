@@ -1,25 +1,29 @@
 const express = require("express");
-const router = express.Router();
 const Round = require("../models/Round");
+const { generateResult } = require("../utils/generateResult");
 
-// Get all rounds
+const router = express.Router();
+
+// GET all rounds
 router.get("/", async (req, res) => {
   try {
-    const rounds = await Round.find().sort({ startTime: -1 });
+    const rounds = await Round.find().sort({ timestamp: -1 });
     res.json(rounds);
   } catch (err) {
+    console.error("❌ Error fetching rounds:", err);
     res.status(500).json({ message: "Error fetching rounds" });
   }
 });
-router.post('/generate', async (req, res) => {
+
+// POST to manually generate a result
+router.post("/generate", async (req, res) => {
   try {
-    const round = await generateResult(); // <- this must be imported
-    res.json({ message: 'Result generated', result: round.result });
+    const round = await generateResult();
+    res.json({ message: "Result generated", result: round.result });
   } catch (err) {
-    console.error('Error generating result:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("❌ Error generating result:", err.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
-
 
 module.exports = router;
