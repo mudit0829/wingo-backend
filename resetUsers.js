@@ -1,32 +1,27 @@
-const mongoose = require("mongoose");
+const express = require("express");
+const router = express.Router();
 const bcrypt = require("bcryptjs");
-const dotenv = require("dotenv");
-const User = require("./models/User");
+const User = require("../models/User");
 
-dotenv.config();
-
-const MONGO_URI = process.env.MONGO_URI;
-
-mongoose.connect(MONGO_URI)
-  .then(async () => {
-    console.log("Connected to MongoDB");
-
-    // Clear existing users
+router.get("/reset", async (req, res) => {
+  try {
+    // Clear all existing users
     await User.deleteMany({});
 
-    // Create new admin and user
-    const adminPassword = await bcrypt.hash("admin123", 10);
-    const userPassword = await bcrypt.hash("user123", 10);
+    // Create default admin and user accounts
+    const hashedAdminPass = await bcrypt.hash("admin123", 10);
+    const hashedUserPass = await bcrypt.hash("user123", 10);
 
-    const users = [
-      { username: "admin", password: adminPassword, role: "admin" },
-      { username: "user", password: userPassword, role: "user" },
-    ];
+    await User.create([
+      { username: "admin", password: hashedAdminPass, role: "admin" },
+      { username: "user", password: hashedUserPass, role: "user" },
+    ]);
 
-    await User.insertMany(users);
-    console.log("✅ Admin and User created with hashed passwords.");
-    mongoose.disconnect();
-  })
-  .catch((err) => {
-    console.error("Error connecting to MongoDB:", err);
-  });
+    res.json({ message: "✅ Admin and user accounts reset successfully." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error resetting users." });
+  }
+});
+
+module.exports = router;
