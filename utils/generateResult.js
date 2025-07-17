@@ -1,21 +1,22 @@
-const Round = require('../models/Round');
-const Bet = require('../models/Bet');
+// utils/generateResult.js
+const Round = require("../models/Round");
 
 function getRandomResult() {
-  const outcomes = ['Red', 'Green', 'Violet'];
-  return outcomes[Math.floor(Math.random() * outcomes.length)];
+  const rand = Math.floor(Math.random() * 100);
+  if (rand < 45) return "Red";
+  if (rand < 90) return "Green";
+  return "Violet";
 }
 
-async function generateResult() {
+module.exports = async function generateResult() {
   const result = getRandomResult();
-  const roundId = Date.now();
-  const timestamp = new Date();
+  const roundId = Date.now(); // Use UNIX timestamp
+  const newRound = new Round({
+    roundId,
+    result,
+    timestamp: new Date()
+  });
 
-  const round = new Round({ roundId, result, timestamp });
-  await round.save();
-
-  // You can process bets here if needed
-  return round;
-}
-
-module.exports = generateResult;
+  await newRound.save();
+  return { roundId, result };
+};
