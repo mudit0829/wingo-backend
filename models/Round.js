@@ -1,20 +1,10 @@
-const mongoose = require('mongoose');
+// models/Round.js
+const mongoose = require("mongoose");
 
 const roundSchema = new mongoose.Schema({
-  roundId: {
-    type: Number,
-    required: true,
-    unique: true,
-  },
-  result: {
-    type: String,
-    enum: ['Red', 'Green', 'Violet', null],
-    default: null,
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  roundId: { type: String, required: true },
+  result: { type: String, default: null },
+  timestamp: { type: Date, default: Date.now },
+}, { timestamps: true });
 
-module.exports = mongoose.model('Round', roundSchema);
+module.exports = mongoose.model("Round", roundSchema);
