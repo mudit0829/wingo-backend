@@ -1,15 +1,13 @@
-// routes/roundRoutes.js
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const Round = require("../models/Round");
+const Round = require('../models/Round');
 
-// GET all rounds
-router.get("/", async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const rounds = await Round.find().sort({ timestamp: -1 }).limit(10);
+    const rounds = await Round.find().sort({ timestamp: -1 }).limit(20);
     res.json(rounds);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching rounds", error: err.message });
+    res.status(500).json({ error: 'Failed to fetch rounds' });
   }
 });
 
