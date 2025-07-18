@@ -1,28 +1,21 @@
-// scripts/fixTimestampsAndRoundIds.js
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+dotenv.config();
 
-const mongoose = require("mongoose");
-require("dotenv").config();
-const Round = require("../models/Round");
+const Round = require('../models/Round');
 
-const MONGO_URI = process.env.MONGO_URI;
+async function fix() {
+  await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
-async function fixRounds() {
-  await mongoose.connect(MONGO_URI);
-
-  const rounds = await Round.find().sort({ timestamp: 1 }); // Oldest to latest
-
-  for (let i = 0; i < rounds.length; i++) {
-    const round = rounds[i];
-    const newTimestamp = new Date(2025, 6, 18, 17, 0, 0); // 6 = July (0-based index)
-    newTimestamp.setSeconds(newTimestamp.getSeconds() + i * 30); // add 30s for each round
-
-    round.timestamp = newTimestamp;
-    round.roundId = `R${(i + 1).toString().padStart(4, "0")}`;
-    await round.save();
+  const rounds = await Round.find();
+  for (let rd of rounds) {
+    if (!rd.roundId) rd.roundId = rd._id.getTimestamp().getTime().toString();
+    if (!rd.timestamp) rd.timestamp = rd._id.getTimestamp();
+    await rd.save();
   }
 
-  console.log("✅ Rounds updated with timestamps and roundIds.");
-  mongoose.disconnect();
+  console.log('✅ Fixed round IDs and timestamps');
+  process.exit();
 }
 
-fixRounds();
+fix().catch(err => { console.error(err); process.exit(1); });
