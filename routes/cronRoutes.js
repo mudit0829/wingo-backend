@@ -1,29 +1,27 @@
-const express = require("express");
+// cronRoutes.js
+const express = require('express');
 const router = express.Router();
-const Round = require("../models/Round");
-const generateResult = require("../utils/generateResult");
+const Round = require('../models/Round');
+const Bet = require('../models/Bet');
+const generateResult = require('../utils/generateResult');
 
-// Start Game Timer (simulate 30-second interval - in real case use cron)
-router.post("/start", async (req, res) => {
-  res.json({ message: "Timer started (mock)" });
-});
-
-// Generate a result for a new round
-router.post("/generate-result", async (req, res) => {
+router.post('/generate-result', async (req, res) => {
   try {
-    const result = generateResult(); // e.g., "Red", "Green", "Violet"
-    const timestamp = new Date();
+    const latestRound = await Round.findOne().sort({ timestamp: -1 });
 
-    const lastRound = await Round.findOne().sort({ roundId: -1 });
-    const roundId = lastRound ? lastRound.roundId + 1 : 1;
+    if (!latestRound || !latestRound.roundId) {
+      return res.status(400).json({ message: 'No valid round to generate result for' });
+    }
 
-    const newRound = new Round({ roundId, result, timestamp });
-    await newRound.save();
+    const result = generateResult();
 
-    res.status(201).json({ message: "Result generated", newRound });
+    latestRound.result = result;
+    await latestRound.save();
+
+    res.status(200).json({ message: 'Result generated', result });
   } catch (error) {
-    console.error("Error generating result:", error);
-    res.status(500).json({ error: "Failed to generate result" });
+    console.error('❌ Error generating result:', error);
+    res.status(500).json({ message: 'Failed to generate result' });
   }
 });
 
