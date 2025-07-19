@@ -1,25 +1,31 @@
-const Round = require("../models/Round");
+const Bet = require('../models/Bet');
+const Round = require('../models/Round');
 
-function getRandomColor() {
-  const rand = Math.random();
-  if (rand < 0.475) return "Red";
-  else if (rand < 0.95) return "Green";
-  else return "Violet";
+function generateColorFromSeed(seed) {
+  const outcomes = ['Red', 'Green', 'Violet'];
+  const index = seed % 10;
+
+  if (index === 0 || index === 5) return 'Violet';
+  if (index % 2 === 0) return 'Green';
+  return 'Red';
 }
 
-async function generateResult() {
-  const roundId = Math.floor(Date.now() / 1000);
-  const result = getRandomColor();
+async function generateResultForLastRound() {
+  const lastRound = await Round.findOne().sort({ createdAt: -1 });
 
-  const newRound = new Round({
-    roundId,
-    result,
-    timestamp: new Date(),
-  });
+  if (!lastRound) throw new Error('No round found.');
 
-  await newRound.save();
-  console.log(`✅ Round ${roundId} result: ${result}`);
+  if (lastRound.result) return lastRound.result; // Skip if already has result
+
+  const seed = lastRound.roundId;
+  const result = generateColorFromSeed(seed);
+
+  lastRound.result = result;
+  await lastRound.save();
+
+  // Optionally update bets, track winners here...
+
   return result;
 }
 
-module.exports = generateResult;
+module.exports = generateResultForLastRound;
