@@ -1,27 +1,29 @@
-// routes/cronRoutes.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Round = require('../models/Round');
-const generateResult = require('../utils/generateResult');
+const Round = require("../models/Round");
+const generateResult = require("../utils/generateResult");
 
-router.post('/generate-result', async (req, res) => {
+// Route to generate result manually (admin)
+router.post("/generate-result", async (req, res) => {
   try {
-    const rounds = await Round.find({ result: null }).sort({ roundId: 1 });
+    const lastRound = await Round.findOne().sort({ timestamp: -1 });
 
-    if (rounds.length === 0) {
-      return res.status(400).json({ message: 'No rounds pending result generation' });
-    }
+    const newRoundId = Date.now(); // Unique round ID
+    const result = generateResult();
+    const timestamp = new Date();
 
-    for (const round of rounds) {
-      round.result = generateResult();
-      round.timestamp = new Date(); // Give new timestamp for each round
-      await round.save();
-    }
+    const newRound = new Round({
+      roundId: newRoundId,
+      result,
+      timestamp,
+    });
 
-    res.status(200).json({ message: 'Results generated successfully' });
+    await newRound.save();
+
+    res.status(200).json({ message: "Result generated", round: newRound });
   } catch (error) {
-    console.error('Error generating results:', error);
-    res.status(500).json({ message: 'Error generating results', error });
+    console.error("Error generating result:", error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
