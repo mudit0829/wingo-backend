@@ -1,5 +1,4 @@
 const Round = require('../models/Round');
-const Bet = require('../models/Bet');
 
 function getRandomResult() {
   const outcomes = ['RED', 'GREEN', 'VIOLET'];
@@ -7,7 +6,10 @@ function getRandomResult() {
 }
 
 async function generateAndSaveResult() {
-  const round = await Round.findOne({ result: { $exists: false } }).sort({ createdAt: 1 });
+  // ✅ Find the latest round with result not yet set (null or undefined)
+  const round = await Round.findOne({
+    $or: [{ result: { $exists: false } }, { result: null }]
+  }).sort({ createdAt: -1 }); // latest round
 
   if (!round) {
     throw new Error('No round or result already generated');
