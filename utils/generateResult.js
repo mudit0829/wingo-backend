@@ -1,20 +1,23 @@
 const Round = require('../models/Round');
 const Bet = require('../models/Bet');
 
-function calculateResult() {
-    const options = ['Red', 'Green', 'Violet'];
-    return options[Math.floor(Math.random() * options.length)];
+function getRandomResult() {
+  const outcomes = ['RED', 'GREEN', 'VIOLET'];
+  return outcomes[Math.floor(Math.random() * outcomes.length)];
 }
 
 async function generateAndSaveResult() {
-    const latestRound = await Round.findOne().sort({ timestamp: -1 });
-    if (!latestRound || latestRound.result) throw new Error("No round or result already generated");
+  const round = await Round.findOne({ result: { $exists: false } }).sort({ createdAt: 1 });
 
-    const result = calculateResult();
-    latestRound.result = result;
-    await latestRound.save();
+  if (!round) {
+    throw new Error('No round or result already generated');
+  }
 
-    return { roundId: latestRound.roundId, result };
+  const result = getRandomResult();
+  round.result = result;
+  await round.save();
+
+  return round;
 }
 
 module.exports = generateAndSaveResult;
