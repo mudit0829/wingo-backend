@@ -1,13 +1,21 @@
 const mongoose = require('mongoose');
 
 const roundSchema = new mongoose.Schema({
-  roundId: Number,
-  timestamp: Date,
+  roundId: {
+    type: Number,
+    required: true,
+  },
+  timestamp: {
+    type: Date,
+    required: true,
+  },
   result: {
     type: String,
-    enum: ['RED', 'GREEN', 'VIOLET'], // ✅ Add VIOLET here
+    enum: ['RED', 'GREEN', 'VIOLET'], // ✅ Fixed: Added VIOLET
     default: null,
   },
-}, { timestamps: true });
+}, {
+  timestamps: true
+});
 
 module.exports = mongoose.model('Round', roundSchema);
