@@ -1,15 +1,24 @@
 const express = require('express');
 const router = express.Router();
-const generateAndSaveResult = require('../utils/generateResult');
+const Round = require('../models/Round');
 
-router.post('/generate-result', async (req, res) => {
-    try {
-        const result = await generateAndSaveResult();
-        res.json({ success: true, result });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ success: false, message: err.message });
-    }
+// Create a new round manually
+router.get('/start-timer', async (req, res) => {
+  try {
+    const latestRound = await Round.findOne().sort({ createdAt: -1 });
+    const newRoundId = latestRound ? latestRound.roundId + 1 : 1;
+
+    const newRound = new Round({
+      roundId: newRoundId,
+      timestamp: new Date()
+    });
+
+    await newRound.save();
+    res.json({ message: `New round ${newRoundId} started` });
+  } catch (err) {
+    console.error('Error creating new round:', err);
+    res.status(500).json({ error: 'Failed to start new round' });
+  }
 });
 
 module.exports = router;
