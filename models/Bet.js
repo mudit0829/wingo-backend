@@ -1,13 +1,12 @@
 const mongoose = require("mongoose");
 
-const betSchema = new mongoose.Schema({
+const BetSchema = new mongoose.Schema({
   username: { type: String, required: true },
   amount: { type: Number, required: true },
-  color: { type: String, required: true },
-  roundId: { type: mongoose.Schema.Types.ObjectId, ref: "Round" },
+  betType: { type: String, enum: ["COLOR", "NUMBER"], required: true },
+  choice: { type: String, required: true }, // e.g., "RED", "5"
+  roundId: { type: Number, required: true },
   timestamp: { type: Date, default: Date.now },
-  status: { type: String, default: "Pending" }, // "Win", "Lose", "Pending"
-  resultColor: { type: String, default: "" }     // Result of the round
 });
 
-module.exports = mongoose.model("Bet", betSchema);
+module.exports = mongoose.model("Bet", BetSchema);
