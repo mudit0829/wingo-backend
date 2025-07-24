@@ -1,12 +1,14 @@
 const mongoose = require("mongoose");
 
-const BetSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  amount: { type: Number, required: true },
-  betType: { type: String, enum: ["COLOR", "NUMBER"], required: true },
-  choice: { type: String, required: true }, // e.g., "RED", "5"
-  roundId: { type: Number, required: true },
-  timestamp: { type: Date, default: Date.now },
+const betSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  roundId: String,
+  type: { type: String, enum: ["color", "number"] },
+  value: String,
+  amount: Number,
+  serviceFee: Number,
+  status: { type: String, enum: ["PENDING", "WIN", "LOSE"], default: "PENDING" },
+  winnings: { type: Number, default: 0 }
 });
 
-module.exports = mongoose.model("Bet", BetSchema);
+module.exports = mongoose.model("Bet", betSchema);
