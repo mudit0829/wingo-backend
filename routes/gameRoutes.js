@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-// Test Route to confirm server is working
+// Health check route
 router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'API is running 🚀' });
+  res.json({ message: 'Game Routes Working ✅' });
 });
 
 module.exports = router;
