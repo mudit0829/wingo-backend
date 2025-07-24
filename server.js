@@ -1,33 +1,30 @@
-// server.js
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+const connectDB = require('./config/db');
+const dotenv = require('dotenv');
 
-const betRoutes = require('./routes/betRoutes');
-const cronRoutes = require('./routes/cronRoutes');
-const roundRoutes = require('./routes/roundRoutes');
-const userRoutes = require('./routes/userRoutes');
-const authRoutes = require('./routes/authRoutes');
+dotenv.config();
+connectDB();
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/bets', betRoutes);
-app.use('/api/cron', cronRoutes);
-app.use('/api/rounds', roundRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/auth', authRoutes);
+// Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/user', require('./routes/userRoutes'));
+app.use('/api/round', require('./routes/roundRoutes'));
+app.use('/api/bet', require('./routes/betRoutes'));
+app.use('/api/reset', require('./routes/resetRoute'));
+app.use('/api/cron', require('./routes/cronRoutes'));
 
-app.get('/', (req, res) => res.send('Wingo backend running'));
+// ✅ Health Check Route
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'API is running' });
+});
 
-mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('MongoDB connected');
-    app.listen(process.env.PORT || 5000, () =>
-      console.log(`Server running on port ${process.env.PORT || 5000}`)
-    );
-  })
-  .catch(err => console.error(err));
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
