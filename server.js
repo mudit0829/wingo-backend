@@ -17,7 +17,7 @@ app.use(cors());
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/games', gameRoutes);
-app.use('/api/cron', cronRoutes); // ✅ This enables the timer route
+app.use('/api/cron', cronRoutes);
 
 // Test route
 app.get('/api/health', (req, res) => {
