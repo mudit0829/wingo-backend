@@ -1,59 +1,22 @@
 const express = require("express");
 const router = express.Router();
 const Bet = require("../models/Bet");
+const User = require("../models/User");
 
-// Place a bet
-router.post("/", async (req, res) => {
-  try {
-    const { username, amount, color, roundId } = req.body;
-    const bet = new Bet({ username, amount, color, roundId });
-    await bet.save();
-    res.status(201).json({ message: "Bet placed", bet });
-  } catch (err) {
-    res.status(500).json({ message: "Error placing bet" });
-  }
-});
+router.post("/bets", async (req, res) => {
+  const { userId, roundId, type, value, amount } = req.body;
+  const user = await User.findById(userId);
 
-// Get all bets
-router.get("/", async (req, res) => {
-  try {
-    const bets = await Bet.find().sort({ timestamp: -1 });
-    res.json(bets);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching bets" });
-  }
-});
+  if (!user || user.balance < amount) return res.status(400).json({ msg: "Insufficient balance" });
 
-// Get bets by username
-router.get("/user/:username", async (req, res) => {
-  try {
-    const bets = await Bet.find({ username: req.params.username }).sort({ timestamp: -1 });
-    res.json(bets);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching user bets" });
-  }
-});
+  const serviceFee = amount * 0.02;
+  const actualAmount = amount - serviceFee;
 
-// 💡 NEW: Profit/Loss API
-router.get("/profit/:username", async (req, res) => {
-  try {
-    const { username } = req.params;
-    const bets = await Bet.find({ username });
+  const bet = await Bet.create({ user: userId, roundId, type, value, amount: actualAmount, serviceFee });
+  user.balance -= amount;
+  await user.save();
 
-    let profit = 0;
-    for (const bet of bets) {
-      if (bet.status === "Win") {
-        profit += bet.amount;
-      } else if (bet.status === "Lose") {
-        profit -= bet.amount;
-      }
-    }
-
-    res.json({ username, profit });
-  } catch (error) {
-    console.error("Profit calculation error:", error);
-    res.status(500).json({ message: "Failed to calculate profit." });
-  }
+  res.json({ msg: "Bet placed", bet });
 });
 
 module.exports = router;
