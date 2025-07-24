@@ -1,19 +1,14 @@
-const generateResult = require("./utils/generateResult");
+const Round = require("./models/Round");
 
-let interval;
+let roundCounter = 1;
 
-function start() {
-  if (interval) return;
+const startNewRound = async () => {
+  const existing = await Round.findOne().sort({ roundId: -1 });
+  roundCounter = existing ? existing.roundId + 1 : 1;
 
-  interval = setInterval(async () => {
-    console.log("⏱️ Running scheduled result generation...");
-    await generateResult();
-  }, 30000); // 30 seconds
-}
+  const round = new Round({ roundId: roundCounter });
+  await round.save();
+  console.log("Started new round:", roundCounter);
+};
 
-function stop() {
-  clearInterval(interval);
-  interval = null;
-}
-
-module.exports = { start, stop };
+module.exports = startNewRound;
