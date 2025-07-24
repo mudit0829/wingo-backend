@@ -1,30 +1,21 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const cors = require('cors');
+const express = require("express");
+const mongoose = require("mongoose");
+const betRoutes = require("./routes/betRoutes");
+const cronRoutes = require("./routes/cronRoutes");
+const resetRoute = require("./routes/resetRoute");
+const { startLoop } = require("./utils/roundManager");
 
-dotenv.config();
 const app = express();
-
-app.use(cors());
 app.use(express.json());
 
-const authRoutes = require('./routes/authRoutes');
-const betRoutes = require('./routes/betRoutes');
-const roundRoutes = require('./routes/roundRoutes');
-const cronRoutes = require('./routes/cronRoutes');
-const resetRoute = require('./routes/resetRoute');
+mongoose.connect("mongodb://localhost:27017/wingo", { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => {
+    console.log("MongoDB connected");
+    startLoop(); // start the automatic round cycle
+  });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/bets', betRoutes);
-app.use('/api/rounds', roundRoutes);
-app.use('/api/cron', cronRoutes);
-app.use('/api/reset', resetRoute);
+app.use(betRoutes);
+app.use(cronRoutes);
+app.use(resetRoute);
 
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log('MongoDB connected');
-    app.listen(process.env.PORT || 5000, () => console.log('Server running'));
-}).catch(err => console.error(err));
+app.listen(3000, () => console.log("Server running at http://localhost:3000"));
