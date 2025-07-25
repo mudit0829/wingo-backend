@@ -1,6 +1,5 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const cors = require('cors');
 const connectDB = require('./config/db');
 
 const userRoutes = require('./routes/userRoutes');
@@ -13,12 +12,13 @@ connectDB();
 const app = express();
 app.use(express.json());
 
-// ✅ Updated CORS configuration
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true,
-}));
+// ✅ Manual CORS fix
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // allow any origin or set specific
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
 
 // Routes
 app.use('/api/users', userRoutes);
@@ -30,6 +30,5 @@ app.get('/api/health', (req, res) => {
   res.send('API is running');
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
