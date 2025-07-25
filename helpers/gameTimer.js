@@ -1,18 +1,24 @@
-let timerRunning = false;
 let intervalId = null;
 
-const startTimer = (callback) => {
-  if (timerRunning) return;
+const GameTimer = {
+  start(callback, interval = 30000) {
+    if (intervalId) {
+      console.log('🛑 Timer already running.');
+      return;
+    }
 
-  timerRunning = true;
-  intervalId = setInterval(() => {
-    callback();
-  }, 30000); // 30 seconds
+    console.log(`⏳ Timer initialized with interval: ${interval}ms`);
+    intervalId = setInterval(callback, interval);
+    callback(); // Run once immediately
+  },
+
+  stop() {
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = null;
+      console.log('🛑 Timer stopped');
+    }
+  },
 };
 
-const stopTimer = () => {
-  if (intervalId) clearInterval(intervalId);
-  timerRunning = false;
-};
-
-module.exports = { startTimer, stopTimer };
+module.exports = GameTimer;
