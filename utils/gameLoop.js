@@ -1,7 +1,7 @@
 const Round = require('../models/Round');
 const Result = require('../models/Result');
 const Bet = require('../models/Bet');
-const User = require('../models/User');
+const User = require('../models/user');
 const GameTimer = require('../helpers/gameTimer');
 const { generateRandomResult } = require('./generateResult');
 const processBets = require('./processBets');
