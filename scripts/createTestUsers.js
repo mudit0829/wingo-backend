@@ -1,15 +1,18 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 require("dotenv").config();
 
-async function createTestUsers() {
-  await mongoose.connect(process.env.MONGO_URI);
+mongoose.connect(process.env.MONGO_URI).then(async () => {
   await User.deleteMany({});
-  await User.insertMany([
-    { username: "admin", password: "admin123", role: "admin" },
-    { username: "user", password: "user123", role: "user" }
-  ]);
-  await mongoose.disconnect();
-}
+  const hashedAdminPass = await bcrypt.hash("admin123", 10);
+  const hashedUserPass = await bcrypt.hash("user123", 10);
 
-module.exports = createTestUsers;
+  await User.insertMany([
+    { email: "admin@example.com", password: hashedAdminPass, role: "admin" },
+    { email: "user@example.com", password: hashedUserPass, role: "user" }
+  ]);
+
+  console.log("✅ Test users created");
+  process.exit();
+}).catch(err => console.error(err));
