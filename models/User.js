@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  username: String,
-  password: String,
-  balance: { type: Number, default: 0 },
-  winHistory: [{ roundId: String, amountWon: Number }],
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  role: { type: String, default: 'user' }
 });
+
 module.exports = mongoose.model('User', userSchema);
