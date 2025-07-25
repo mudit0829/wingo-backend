@@ -1,13 +1,32 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 require("dotenv").config();
 
-mongoose.connect(process.env.MONGO_URI).then(async () => {
+async function seedUsers() {
+  await mongoose.connect(process.env.MONGO_URI);
+
   await User.deleteMany({});
-  await User.insertMany([
-    { username: "admin", password: "admin123", role: "admin" },
-    { username: "user", password: "user123", role: "user" }
-  ]);
-  console.log("✅ Test users created");
+
+  const users = [
+    {
+      username: "admin",
+      password: await bcrypt.hash("admin123", 10),
+      role: "admin"
+    },
+    {
+      username: "user",
+      password: await bcrypt.hash("user123", 10),
+      role: "user"
+    }
+  ];
+
+  await User.insertMany(users);
+  console.log("✅ Hashed test users created");
   process.exit();
-}).catch(err => console.error(err));
+}
+
+seedUsers().catch(err => {
+  console.error("❌ Failed to seed users:", err);
+  process.exit(1);
+});
