@@ -1,24 +1,24 @@
 const Result = require('../models/Result');
 
-function generateRandomResult(roundId) {
-  const number = Math.floor(Math.random() * 10); // 0-9
-  let color = 'GREEN';
-
-  if (number === 0 || number === 5) {
-    color = 'VIOLET';
-  } else if (number % 2 === 0) {
-    color = 'GREEN';
-  } else {
-    color = 'RED';
-  }
-
-  return new Result({
-    roundId,
-    number,
-    color,
-  });
+function getColor(number) {
+  if ([1, 3, 7, 9].includes(number)) return 'RED';
+  if ([2, 4, 6, 8].includes(number)) return 'GREEN';
+  return 'VIOLET';
 }
 
-module.exports = {
-  generateRandomResult,
+const generateRandomResult = (roundId) => {
+  const resultNumber = Math.floor(Math.random() * 10); // 0–9
+  const resultColor = getColor(resultNumber);
+
+  const result = new Result({
+    roundId: roundId.toString(), // ✅ convert ObjectId to string
+    resultNumber,
+    resultColor,
+  });
+
+  console.log(`[🎯] Generated result: ${resultNumber} (${resultColor})`);
+
+  return result;
 };
+
+module.exports = { generateRandomResult };
