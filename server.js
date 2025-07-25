@@ -11,19 +11,26 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(express.json());
-app.use(cors());
 
-// Routes
+// ✅ Enable CORS (allows your frontend to talk to backend)
+app.use(cors({
+  origin: '*', // You can change '*' to your frontend URL for more security
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.use(express.json());
+
+// ✅ API Routes
 app.use('/api/users', userRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/cron', cronRoutes);
 
-// Test route
+// ✅ Health Check Route
 app.get('/api/health', (req, res) => {
   res.send('API is running');
 });
 
-// Start server
+// ✅ Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
