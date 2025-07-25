@@ -11,17 +11,16 @@ dotenv.config();
 connectDB();
 
 const app = express();
-
-// ✅ Full CORS fix here:
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*"); // Or use your frontend domain
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  next();
-});
-
 app.use(express.json());
 
+// ✅ Updated CORS configuration
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+}));
+
+// Routes
 app.use('/api/users', userRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/cron', cronRoutes);
@@ -31,5 +30,6 @@ app.get('/api/health', (req, res) => {
   res.send('API is running');
 });
 
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
