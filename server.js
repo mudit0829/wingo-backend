@@ -1,5 +1,6 @@
 const express = require('express');
 const dotenv = require('dotenv');
+const cors = require('cors');
 const connectDB = require('./config/db');
 
 const userRoutes = require('./routes/userRoutes');
@@ -12,13 +13,12 @@ connectDB();
 const app = express();
 app.use(express.json());
 
-// ✅ Manual CORS fix
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*"); // allow any origin or set specific
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  next();
-});
+// ✅ Enable CORS for all origins (or limit it to your frontend domain)
+app.use(cors({
+  origin: '*', // change to 'https://your-frontend-url.com' when live
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Routes
 app.use('/api/users', userRoutes);
