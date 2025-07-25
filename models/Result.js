@@ -2,9 +2,8 @@ const mongoose = require('mongoose');
 
 const resultSchema = new mongoose.Schema({
   roundId: {
-    type: Number,
+    type: String, // ✅ Must be string, since we store it as string
     required: true,
-    unique: true,
   },
   resultNumber: {
     type: Number,
@@ -12,8 +11,8 @@ const resultSchema = new mongoose.Schema({
   },
   resultColor: {
     type: String,
-    required: true,
     enum: ['RED', 'GREEN', 'VIOLET'],
+    required: true,
   },
   createdAt: {
     type: Date,
@@ -21,4 +20,6 @@ const resultSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('Result', resultSchema);
+const Result = mongoose.model('Result', resultSchema);
+
+module.exports = Result;
