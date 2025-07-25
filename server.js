@@ -15,19 +15,21 @@ const app = express();
 // Middleware
 app.use(express.json());
 
-// ✅ Correct and safe CORS config
-app.use(cors({
-  origin: '*', // or use your frontend URL like 'https://yourfrontend.netlify.app'
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// ✅ CORS config for frontend access
+app.use(
+  cors({
+    origin: '*', // You can replace * with your Netlify or frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
-// ✅ Health check (Render will call this to confirm working deployment)
+// ✅ Health check endpoint
 app.get('/api/health', (req, res) => {
   res.send('API is running 🚀');
 });
 
-// ✅ Routes
+// Routes
 app.use('/api/users', userRoutes);
 app.use('/api/games', gameRoutes);
 app.use('/api/cron', cronRoutes);
