@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   registerUser,
   loginUser,
@@ -8,11 +9,11 @@ const {
 
 const authenticate = require("../middleware/authenticate");
 
-// Auth routes
+// Auth
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 
-// Wallet route (requires JWT token)
+// Wallet (protected)
 router.get("/wallet", authenticate, getWallet);
 
 module.exports = router;
