@@ -1,31 +1,34 @@
-const Bet = require("../models/Bet");
-const User = require("../models/user");
+const asyncHandler = require('express-async-handler');
+const Bet = require('../models/bet');
+const Round = require('../models/round');
+const User = require('../models/user');
 
-exports.placeBet = async (req, res) => {
-  try {
-    const { amount, type, value } = req.body;
-    const user = req.user;
+const placeBet = asyncHandler(async (req, res) => {
+  const { color, number, amount } = req.body;
+  const userId = req.user._id;
 
-    if (user.balance < amount) {
-      return res.status(400).json({ error: "Insufficient balance" });
-    }
-
-    const bet = new Bet({
-      user: user._id,
-      round: Date.now().toString(), // Replace with actual round logic
-      type, // "color" or "number"
-      value, // e.g., "RED" or "5"
-      amount,
-    });
-
-    await bet.save();
-
-    user.balance -= amount;
-    await user.save();
-
-    res.json({ message: "Bet placed", bet });
-  } catch (err) {
-    console.error("Error placing bet:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+  const round = await Round.findOne().sort({ roundNumber: -1 });
+  if (!round) {
+    res.status(400);
+    throw new Error('No active round found');
   }
-};
+
+  const bet = new Bet({
+    user: userId,
+    round: round._id,
+    color,
+    number,
+    amount,
+  });
+
+  await bet.save();
+
+  // Deduct wallet amount from user (optional if wallet logic exists)
+  await User.findByIdAndUpdate(userId, {
+    $inc: { wallet: -Math.abs(amount) }
+  });
+
+  res.status(201).json({ message: 'Bet placed successfully', bet });
+});
+
+module.exports = { placeBet };
