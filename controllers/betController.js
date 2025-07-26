@@ -1,5 +1,5 @@
 const Bet = require("../models/Bet");
-const User = require("../models/User");
+const User = require("../models/user");
 
 exports.placeBet = async (req, res) => {
   try {
