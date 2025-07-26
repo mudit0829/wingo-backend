@@ -1,17 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const authenticate = require("../middleware/authenticate"); // ✅ your file
-const User = require("../models/user");
+const authenticate = require("../middleware/authenticate");
 
 router.get("/", authenticate, async (req, res) => {
   try {
-    const user = req.user; // set by your middleware
-    if (!user) return res.status(404).json({ message: "User not found" });
-
+    const user = req.user;
     res.json({ balance: user.balance });
-  } catch (error) {
-    console.error("Wallet fetch error:", error);
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.error("Error fetching wallet:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
