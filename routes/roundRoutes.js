@@ -1,14 +1,18 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Round = require('../models/round');
+const Round = require("../models/Round");
 
-// GET all rounds
-router.get('/', async (req, res) => {
+// ✅ Get current round
+router.get("/current", async (req, res) => {
   try {
-    const rounds = await Round.find().sort({ createdAt: -1 });
-    res.json(rounds);
+    const currentRound = await Round.findOne().sort({ createdAt: -1 }).limit(1);
+    if (!currentRound) {
+      return res.status(404).json({ message: "No current round found" });
+    }
+    res.json(currentRound);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Error fetching current round:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
