@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 
+// ✅ Route imports
 const authRoutes = require("./routes/authRoutes");
 const betRoutes = require("./routes/betRoutes");
 const resultRoutes = require("./routes/resultRoutes");
@@ -12,23 +13,28 @@ dotenv.config();
 
 const app = express();
 
-// ✅ Enable CORS for all domains (safe for public testing)
+// ✅ CORS (Enable all origins for now)
 app.use(cors());
 
 // ✅ Middleware
 app.use(express.json());
 
-// ✅ Routes
+// ✅ API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/bet", betRoutes);
 app.use("/api/result", resultRoutes);
 app.use("/api/wallet", walletRoutes);
 
-// ✅ MongoDB + Server Start
+// ✅ Default route (optional)
+app.get("/", (req, res) => {
+  res.send("🎯 WinGo backend is live");
+});
+
+// ✅ MongoDB + Server
 const PORT = process.env.PORT || 5000;
 
 mongoose
-  .connect(process.env.MONGO_URL, {
+  .connect(process.env.MONGODB_URI || process.env.MONGO_URL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
