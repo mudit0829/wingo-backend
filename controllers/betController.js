@@ -1,34 +1,31 @@
 const asyncHandler = require('express-async-handler');
 const Bet = require('../models/bet');
 const Round = require('../models/round');
-const User = require('../models/user');
 
+// POST /api/bets
 const placeBet = asyncHandler(async (req, res) => {
-  const { color, number, amount } = req.body;
+  const { color, number, amount, roundId } = req.body;
   const userId = req.user._id;
 
-  const round = await Round.findOne().sort({ roundNumber: -1 });
-  if (!round) {
-    res.status(400);
-    throw new Error('No active round found');
+  if (!amount || (!color && number === undefined)) {
+    return res.status(400).json({ message: 'Invalid bet data' });
   }
 
-  const bet = new Bet({
+  const bet = await Bet.create({
     user: userId,
-    round: round._id,
+    round: roundId,
     color,
     number,
     amount,
   });
 
-  await bet.save();
-
-  // Deduct wallet amount from user (optional if wallet logic exists)
-  await User.findByIdAndUpdate(userId, {
-    $inc: { wallet: -Math.abs(amount) }
-  });
-
-  res.status(201).json({ message: 'Bet placed successfully', bet });
+  res.status(201).json(bet);
 });
 
-module.exports = { placeBet };
+// GET /api/bets
+const getBets = asyncHandler(async (req, res) => {
+  const bets = await Bet.find({ user: req.user._id }).populate('round');
+  res.json(bets);
+});
+
+module.exports = { placeBet, getBets };
