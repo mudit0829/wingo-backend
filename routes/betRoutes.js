@@ -3,6 +3,7 @@ const router = express.Router();
 const authenticate = require("../middleware/authenticate");
 const Bet = require("../models/bet");
 const Round = require("../models/round");
+const User = require("../models/user");
 
 router.post("/", authenticate, async (req, res) => {
   try {
@@ -12,23 +13,35 @@ router.post("/", authenticate, async (req, res) => {
       return res.status(400).json({ message: "Missing required bet data" });
     }
 
-    // Get the latest round
+    const user = await User.findById(req.user._id);
+
+    if (user.wallet < amount) {
+      return res.status(400).json({ message: "Insufficient wallet balance" });
+    }
+
     const round = await Round.findOne().sort({ createdAt: -1 });
 
     const bet = new Bet({
-      user: req.user._id,
+      user: user._id,
       round: round._id,
       type,
       value,
       amount
     });
 
+    // Save bet
     await bet.save();
+
+    // Deduct from wallet
+    user.wallet -= amount;
+    await user.save();
 
     res.json({
       message: "Bet placed successfully",
-      bet
+      bet,
+      wallet: user.wallet // 🆕 show updated wallet
     });
+
   } catch (err) {
     console.error("Bet placing error:", err);
     res.status(500).json({ error: "Server error while placing bet" });
