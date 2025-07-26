@@ -1,31 +1,59 @@
 const asyncHandler = require('express-async-handler');
-const Bet = require('../models/bet');
+const Bet = require('../models/Bet'); // Case-sensitive!
 const Round = require('../models/round');
+const User = require('../models/user'); // Also case-sensitive!
 
-// POST /api/bets
+// @desc Place a bet
+// @route POST /api/bets
+// @access Private
 const placeBet = asyncHandler(async (req, res) => {
-  const { color, number, amount, roundId } = req.body;
+  const { roundId, color, number, amount } = req.body;
   const userId = req.user._id;
 
-  if (!amount || (!color && number === undefined)) {
-    return res.status(400).json({ message: 'Invalid bet data' });
+  if (!roundId || !amount || (!color && number === undefined)) {
+    return res.status(400).json({ message: 'Missing required bet fields' });
   }
 
-  const bet = await Bet.create({
+  const user = await User.findById(userId);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  if (user.wallet < amount) {
+    return res.status(400).json({ message: 'Insufficient wallet balance' });
+  }
+
+  const round = await Round.findById(roundId);
+  if (!round) {
+    return res.status(404).json({ message: 'Round not found' });
+  }
+
+  // Deduct from user wallet
+  user.wallet -= amount;
+  await user.save();
+
+  const newBet = new Bet({
     user: userId,
     round: roundId,
     color,
     number,
-    amount,
+    amount
   });
 
-  res.status(201).json(bet);
+  const savedBet = await newBet.save();
+
+  res.status(201).json(savedBet);
 });
 
-// GET /api/bets
-const getBets = asyncHandler(async (req, res) => {
+// @desc Get all bets (admin or user-specific)
+// @route GET /api/bets
+// @access Private
+const getAllBets = asyncHandler(async (req, res) => {
   const bets = await Bet.find({ user: req.user._id }).populate('round');
-  res.json(bets);
+  res.status(200).json(bets);
 });
 
-module.exports = { placeBet, getBets };
+module.exports = {
+  placeBet,
+  getAllBets,
+};
