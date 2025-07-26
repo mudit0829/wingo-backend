@@ -1,5 +1,5 @@
 const asyncHandler = require('express-async-handler');
-const Bet = require('../models/Bet'); // Case-sensitive!
+const Bet = require('../models/bet'); // Case-sensitive!
 const Round = require('../models/round');
 const User = require('../models/user'); // Also case-sensitive!
 
