@@ -26,7 +26,7 @@ mongoose.connect(process.env.MONGO_URI, {
 // ✅ API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
-app.use('/api/bet', betRoutes);
+app.use('/api/bets', betRoutes);
 app.use('/api/rounds', roundRoutes);
 app.use('/api/results', resultRoutes); // ✅ THIS MUST BE PRESENT
 app.use('/api/wallet', walletRoutes);
