@@ -2,13 +2,14 @@ const express = require("express");
 const router = express.Router();
 const Result = require("../models/Result");
 
-// GET all results
-router.get("/", async (req, res) => {
+router.get("/latest", async (req, res) => {
   try {
-    const results = await Result.find().sort({ roundNumber: -1 }).limit(10);
-    res.json(results);
+    const result = await Result.findOne().sort({ createdAt: -1 });
+    if (!result) return res.status(404).json({ error: "No result found" });
+    res.json(result);
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    console.error("Error fetching result:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
