@@ -1,9 +1,9 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { placeBet, getBets } = require('../controllers/betController');
-const authenticate = require('../middleware/authenticate');
+const { placeBet, getAllBets } = require("../controllers/betController");
+const authenticate = require("../middleware/authenticate");
 
-router.post('/', authenticate, placeBet);       // POST /api/bets
-router.get('/', authenticate, getBets);         // GET /api/bets
+router.post("/", authenticate, placeBet);
+router.get("/", authenticate, getAllBets);
 
 module.exports = router;
