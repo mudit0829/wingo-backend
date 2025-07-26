@@ -1,59 +1,33 @@
-const asyncHandler = require('express-async-handler');
-const Bet = require('../models/bet'); // Case-sensitive!
-const Round = require('../models/round');
-const User = require('../models/user'); // Also case-sensitive!
+const asyncHandler = require("express-async-handler");
+const Bet = require("../models/bet");
+const Round = require("../models/round");
+const User = require("../models/user");
 
-// @desc Place a bet
-// @route POST /api/bets
-// @access Private
+// PLACE A BET
 const placeBet = asyncHandler(async (req, res) => {
-  const { roundId, color, number, amount } = req.body;
+  const { number, color, amount } = req.body;
   const userId = req.user._id;
 
-  if (!roundId || !amount || (!color && number === undefined)) {
-    return res.status(400).json({ message: 'Missing required bet fields' });
-  }
+  const round = await Round.findOne().sort({ createdAt: -1 });
+
+  if (!round) throw new Error("No active round");
 
   const user = await User.findById(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+  if (!user || user.wallet < amount) throw new Error("Insufficient balance");
 
-  if (user.wallet < amount) {
-    return res.status(400).json({ message: 'Insufficient wallet balance' });
-  }
+  const bet = new Bet({ user: userId, round: round._id, number, color, amount });
+  await bet.save();
 
-  const round = await Round.findById(roundId);
-  if (!round) {
-    return res.status(404).json({ message: 'Round not found' });
-  }
-
-  // Deduct from user wallet
   user.wallet -= amount;
   await user.save();
 
-  const newBet = new Bet({
-    user: userId,
-    round: roundId,
-    color,
-    number,
-    amount
-  });
-
-  const savedBet = await newBet.save();
-
-  res.status(201).json(savedBet);
+  res.status(201).json(bet);
 });
 
-// @desc Get all bets (admin or user-specific)
-// @route GET /api/bets
-// @access Private
+// GET ALL BETS (for history)
 const getAllBets = asyncHandler(async (req, res) => {
-  const bets = await Bet.find({ user: req.user._id }).populate('round');
-  res.status(200).json(bets);
+  const bets = await Bet.find({ user: req.user._id }).populate("round").sort({ createdAt: -1 });
+  res.json(bets);
 });
 
-module.exports = {
-  placeBet,
-  getAllBets,
-};
+module.exports = { placeBet, getAllBets };
