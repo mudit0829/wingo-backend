@@ -24,10 +24,10 @@ app.use("/api/wallet", walletRoutes);
 
 // ✅ Start MongoDB & Server
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URL || process.env.MONGODB_URI;
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 
 if (!MONGO_URI) {
-  console.error("❌ MONGO_URL is not defined in environment variables.");
+  console.error("❌ MONGO_URI is not defined in environment variables.");
   process.exit(1); // Stop the app
 }
 
