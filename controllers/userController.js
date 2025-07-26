@@ -1,42 +1,24 @@
 const asyncHandler = require("express-async-handler");
-const User = require("../models/user");
-const generateToken = require("../utils/generateToken");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
+const User = require("../models/user"); // ✅ lowercase filename
 
-const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+// GET /api/wallet
+const getWallet = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
 
-  const userExists = await User.findOne({ email });
-  if (userExists) throw new Error("User already exists");
-
-  const user = await User.create({ name, email, password });
-  if (user) {
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      balance: user.balance,
-      token: generateToken(user._id),
-    });
-  } else {
-    res.status(400).send("Invalid user data");
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
   }
+
+  res.json({ balance: user.balance });
 });
 
-const authUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
+// Other exports like registerUser, loginUser...
 
-  if (user && (await user.matchPassword(password))) {
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      balance: user.balance,
-      token: generateToken(user._id),
-    });
-  } else {
-    res.status(401).send("Invalid email or password");
-  }
-});
-
-module.exports = { registerUser, authUser };
+module.exports = {
+  // existing exports
+  getWallet,
+};
