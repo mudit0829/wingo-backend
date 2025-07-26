@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Round = require("../models/Round");
+const Round = require("../models/round");
 
 // ✅ Get current round
 router.get("/current", async (req, res) => {
