@@ -1,11 +1,11 @@
 const mongoose = require("mongoose");
 
 const betSchema = new mongoose.Schema({
-    userId: String,
-    round: Number,
-    betType: String,
-    value: String,
-    amount: Number,
-});
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  round: String,
+  type: String, // "color" or "number"
+  value: String, // "RED", "GREEN", or "0"–"9"
+  amount: Number,
+}, { timestamps: true });
 
 module.exports = mongoose.model("Bet", betSchema);
