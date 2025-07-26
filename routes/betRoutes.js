@@ -3,48 +3,44 @@ const router = express.Router();
 const authenticate = require("../middleware/authenticate");
 const Bet = require("../models/bet");
 const Round = require("../models/round");
-const User = require("../models/user");
 
+// Place a bet
 router.post("/", authenticate, async (req, res) => {
   try {
-    const { type, value, amount } = req.body;
+    const { roundId, amount, type, value } = req.body;
 
-    if (!type || value === undefined || !amount) {
-      return res.status(400).json({ message: "Missing required bet data" });
+    if (!roundId || !amount || !type || !value) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
-
-    const user = await User.findById(req.user._id);
-
-    if (user.wallet < amount) {
-      return res.status(400).json({ message: "Insufficient wallet balance" });
-    }
-
-    const round = await Round.findOne().sort({ createdAt: -1 });
 
     const bet = new Bet({
-      user: user._id,
-      round: round._id,
+      user: req.user._id,
+      round: roundId,
+      amount,
       type,
       value,
-      amount
     });
 
-    // Save bet
     await bet.save();
+    res.status(201).json(bet);
+  } catch (error) {
+    console.error("Error placing bet:", error);
+    res.status(500).json({ error: "Failed to place bet" });
+  }
+});
 
-    // Deduct from wallet
-    user.wallet -= amount;
-    await user.save();
+// ✅ NEW: Get user's bet history
+router.get("/history", authenticate, async (req, res) => {
+  try {
+    const bets = await Bet.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .populate("round");
 
-    res.json({
-      message: "Bet placed successfully",
-      bet,
-      wallet: user.wallet // 🆕 show updated wallet
-    });
-
+    res.json(bets);
   } catch (err) {
-    console.error("Bet placing error:", err);
-    res.status(500).json({ error: "Server error while placing bet" });
+    console.error("Error fetching bet history:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
