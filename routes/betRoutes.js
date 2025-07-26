@@ -1,22 +1,25 @@
-// routes/betRoutes.js
 const express = require('express');
 const router = express.Router();
-const Bet = require('../models/Bet');
-const User = require('../models/User');
+const User = require('../models/user');
 
-router.post('/', async (req, res) => {
-  const { userId, roundId, type, value, amount } = req.body;
-  const user = await User.findById(userId);
-  if (!user || user.balance < amount) return res.status(400).json({ msg: 'Insufficient balance' });
+// Example protected route
+router.post('/bet', async (req, res) => {
+  const { email, betType, betValue, amount } = req.body;
 
-  const serviceFee = amount * 0.02;
-  const actual = amount - serviceFee;
-  const bet = await Bet.create({ user: userId, roundId, type, value, amount: actual, serviceFee });
+  try {
+    const user = await User.findOne({ email });
+    if (!user || user.balance < amount) {
+      return res.status(400).json({ message: 'Insufficient balance or user not found' });
+    }
 
-  user.balance -= amount;
-  await user.save();
+    user.balance -= amount;
+    await user.save();
 
-  res.json({ msg: 'Bet placed', bet });
+    res.json({ message: 'Bet placed', newBalance: user.balance });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Bet failed' });
+  }
 });
 
 module.exports = router;
