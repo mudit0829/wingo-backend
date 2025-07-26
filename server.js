@@ -16,6 +16,7 @@ app.use(bodyParser.json());
 app.use("/api", authRoutes);
 app.use("/api/bets", betRoutes);
 app.use("/api/results", resultRoutes);
+app.use("/api/wallet", require("./routes/walletRoutes"));
 
 mongoose.connect("mongodb+srv://mekasutechnology:Wingo123%21@cluster0.x1btj4f.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
     useNewUrlParser: true,
