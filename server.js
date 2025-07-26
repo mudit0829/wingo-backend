@@ -1,30 +1,43 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const dotenv = require("dotenv");
 const cors = require("cors");
-const bodyParser = require("body-parser");
 
 const authRoutes = require("./routes/authRoutes");
 const betRoutes = require("./routes/betRoutes");
 const resultRoutes = require("./routes/resultRoutes");
-const walletRoutes = require("./routes/walletRoutes"); // ✅ ADD THIS
+const walletRoutes = require("./routes/walletRoutes");
+
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 10000;
 
+// ✅ Enable CORS for all domains (safe for public testing)
 app.use(cors());
-app.use(bodyParser.json());
 
-app.use("/api", authRoutes);
-app.use("/api/bets", betRoutes);
-app.use("/api/results", resultRoutes);
-app.use("/api/wallet", walletRoutes); // ✅ This now works
+// ✅ Middleware
+app.use(express.json());
 
-mongoose.connect("mongodb+srv://mekasutechnology:Wingo123%21@cluster0.x1btj4f.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0", {
+// ✅ Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/bet", betRoutes);
+app.use("/api/result", resultRoutes);
+app.use("/api/wallet", walletRoutes);
+
+// ✅ MongoDB + Server Start
+const PORT = process.env.PORT || 5000;
+
+mongoose
+  .connect(process.env.MONGO_URL, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-}).then(() => {
-    console.log("MongoDB Connected");
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-}).catch((err) => {
-    console.error("MongoDB connection error:", err);
-});
+  })
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ MongoDB connection error:", err);
+  });
