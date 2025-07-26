@@ -3,38 +3,36 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 
-// ✅ Route imports
 const authRoutes = require("./routes/authRoutes");
 const betRoutes = require("./routes/betRoutes");
 const resultRoutes = require("./routes/resultRoutes");
 const walletRoutes = require("./routes/walletRoutes");
 
-dotenv.config();
+dotenv.config(); // ✅ Loads variables from .env
 
 const app = express();
 
-// ✅ CORS (Enable all origins for now)
-app.use(cors());
-
 // ✅ Middleware
+app.use(cors()); // Allow all origins for development
 app.use(express.json());
 
-// ✅ API Routes
+// ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/bet", betRoutes);
 app.use("/api/result", resultRoutes);
 app.use("/api/wallet", walletRoutes);
 
-// ✅ Default route (optional)
-app.get("/", (req, res) => {
-  res.send("🎯 WinGo backend is live");
-});
-
-// ✅ MongoDB + Server
+// ✅ Start MongoDB & Server
 const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGO_URL || process.env.MONGODB_URI;
+
+if (!MONGO_URI) {
+  console.error("❌ MONGO_URL is not defined in environment variables.");
+  process.exit(1); // Stop the app
+}
 
 mongoose
-  .connect(process.env.MONGODB_URI || process.env.MONGO_URL, {
+  .connect(MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
