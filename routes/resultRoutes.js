@@ -1,15 +1,15 @@
-const express = require("express");
+// routes/resultRoutes.js
+const express = require('express');
 const router = express.Router();
-const Result = require("../models/Result");
+const Result = require('../models/result');
 
-router.get("/latest", async (req, res) => {
+// ✅ Get all results (limit to recent 10 if needed)
+router.get('/', async (req, res) => {
   try {
-    const result = await Result.findOne().sort({ createdAt: -1 });
-    if (!result) return res.status(404).json({ error: "No result found" });
-    res.json(result);
+    const results = await Result.find().sort({ createdAt: -1 }).limit(10);
+    res.json(results);
   } catch (err) {
-    console.error("Error fetching result:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: 'Failed to fetch results' });
   }
 });
 
