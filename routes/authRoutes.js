@@ -2,27 +2,27 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/user'); // ✅ lowercase filename
+const User = require('../models/user'); // lowercase file, capital model
 
 // REGISTER
 router.post('/register', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      email,
+      password: hashedPassword,
+      wallet: 1000 // ✅ correct field now
+    });
 
-    // Create new user with default balance
-    const user = new User({ email, password: hashedPassword, balance: 1000 });
     await user.save();
 
-    // Generate JWT
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
     res.json({ token });
   } catch (error) {
