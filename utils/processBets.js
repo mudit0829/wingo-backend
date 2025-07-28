@@ -9,27 +9,38 @@ const processBets = async (roundId, result) => {
     if (!user) continue;
 
     let winnings = 0;
+    const serviceFee = 0.02;
+    const effectiveAmount = bet.amount * (1 - serviceFee); // Deduct 2%
 
-    // Payout logic
+    // Payout Logic
     if (bet.type === 'color') {
+      const num = result;
       if (
-        (bet.value === 'RED' && [1, 3, 7, 9].includes(result.number)) ||
-        (bet.value === 'GREEN' && [2, 4, 6, 8].includes(result.number)) ||
-        (bet.value === 'VIOLET' && [0, 5].includes(result.number))
+        (bet.value === 'GREEN' && [1, 3, 7, 9].includes(num)) ||
+        (bet.value === 'RED' && [2, 4, 6, 8].includes(num))
       ) {
-        winnings = bet.amount * (bet.value === 'VIOLET' ? 4.5 : 2);
+        winnings = effectiveAmount * 2;
+      } else if (bet.value === 'VIOLET' && [0, 5].includes(num)) {
+        winnings = effectiveAmount * 4.5;
+      } else if (
+        (bet.value === 'GREEN' && num === 5) ||
+        (bet.value === 'RED' && num === 0)
+      ) {
+        winnings = effectiveAmount * 1.5;
       }
-    } else if (bet.type === 'number' && bet.value == result.number) {
-      winnings = bet.amount * 9;
+    } else if (bet.type === 'number' && parseInt(bet.value) === result) {
+      winnings = effectiveAmount * 9;
     }
 
     if (winnings > 0) {
       user.balance += winnings;
       await user.save();
+      bet.status = 'win';
+      bet.winningAmount = winnings;
+    } else {
+      bet.status = 'lose';
     }
 
-    // Mark bet status
-    bet.status = winnings > 0 ? 'win' : 'lose';
     await bet.save();
   }
 };
