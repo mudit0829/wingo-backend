@@ -2,6 +2,8 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+
+// Route imports
 const authRoutes = require('./routes/authRoutes');
 const gameRoutes = require('./routes/gameRoutes');
 const betRoutes = require('./routes/betRoutes');
@@ -9,15 +11,16 @@ const roundRoutes = require('./routes/roundRoutes');
 const resultRoutes = require('./routes/resultRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const userRoutes = require('./routes/userRoutes');
+const cronRoutes = require('./routes/cronRoutes'); // ✅ Add this line
 
 dotenv.config();
 
 const app = express();
 
-// CORS configuration
+// CORS middleware
 app.use(cors());
 
-// Safe JSON body parser with error handling
+// JSON parser with error handling
 app.use(express.json({
   verify: (req, res, buf) => {
     try {
@@ -38,8 +41,9 @@ app.use('/api/rounds', roundRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/cron', cronRoutes); // ✅ Register the cron route
 
-// JSON parse error handler
+// Error handler
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.statusCode === 400 && 'body' in err) {
     return res.status(400).json({ error: 'Invalid JSON payload' });
@@ -47,7 +51,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// MongoDB Connection
+// MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
