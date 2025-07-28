@@ -1,5 +1,3 @@
-// routes/roundRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const Round = require('../models/round');
@@ -7,27 +5,27 @@ const Round = require('../models/round');
 // GET all rounds
 router.get('/', async (req, res) => {
   try {
-    const rounds = await Round.find().sort({ timestamp: -1 }).limit(50);
+    const rounds = await Round.find().sort({ timestamp: -1 });
     res.json(rounds);
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ error: 'Error fetching rounds' });
   }
 });
 
-// GET current round (latest round with no result yet)
+// GET current round (last created round)
 router.get('/current', async (req, res) => {
   try {
-    const round = await Round.findOne({ result: null }).sort({ timestamp: -1 });
-    if (!round) {
+    const currentRound = await Round.findOne().sort({ createdAt: -1 });
+    if (!currentRound) {
       return res.status(404).json({ error: 'No current round found' });
     }
-    res.json(round);
-  } catch (error) {
+    res.json(currentRound);
+  } catch (err) {
     res.status(500).json({ error: 'Error fetching current round' });
   }
 });
 
-// GET specific round by ID
+// GET round by MongoDB _id
 router.get('/:id', async (req, res) => {
   try {
     const round = await Round.findById(req.params.id);
@@ -35,7 +33,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Round not found' });
     }
     res.json(round);
-  } catch (error) {
+  } catch (err) {
     res.status(500).json({ error: 'Error fetching round by ID' });
   }
 });
@@ -43,17 +41,18 @@ router.get('/:id', async (req, res) => {
 // POST create new round
 router.post('/create', async (req, res) => {
   try {
-    const { roundId, timestamp } = req.body;
+    const latestRound = await Round.findOne().sort({ createdAt: -1 });
+    const nextRoundId = latestRound ? parseInt(latestRound.roundId) + 1 : 1001;
 
     const newRound = new Round({
-      roundId: roundId || Date.now().toString(),
-      timestamp: timestamp || new Date(),
+      roundId: nextRoundId.toString(),
+      timestamp: new Date(),
     });
 
     await newRound.save();
-    res.json({ message: 'Round created', round: newRound });
-  } catch (error) {
-    res.status(500).json({ error: 'Error creating round' });
+    res.status(201).json({ message: 'Round created', round: newRound });
+  } catch (err) {
+    res.status(500).json({ error: 'Error creating new round' });
   }
 });
 
