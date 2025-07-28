@@ -1,5 +1,5 @@
-const Result = require('../models/Result');
-const Round = require('../models/Round');
+const Result = require('../models/result');
+const Round = require('../models/round');
 
 // Get color based on number
 function getColor(number) {
