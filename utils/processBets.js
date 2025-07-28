@@ -1,5 +1,5 @@
-const Bet = require('../models/Bet');
-const User = require('../models/User');
+const Bet = require('../models/bet');
+const User = require('../models/user');
 
 const processBets = async (roundId, result) => {
   const bets = await Bet.find({ roundId });
