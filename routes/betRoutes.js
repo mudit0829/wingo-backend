@@ -1,64 +1,49 @@
+// routes/betRoutes.js
+
 const express = require("express");
 const router = express.Router();
 const Bet = require("../models/bet");
 const Round = require("../models/round");
+const authMiddleware = require("../middleware/authenticate");
 
-// ✅ Place a new bet
-router.post("/", async (req, res) => {
+// POST /api/bets - Place a new bet
+router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { username, roundId, color, number, amount } = req.body;
+    const { roundId, betType, choice, amount } = req.body;
 
-    if (!username || !roundId || !amount || (!color && number === undefined)) {
+    if (!roundId || !betType || !choice || !amount) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    const round = await Round.findOne({ roundId });
+    const round = await Round.findById(roundId);
     if (!round) {
       return res.status(404).json({ error: "Round not found" });
     }
 
-    // Apply 2% service fee
-    const effectiveAmount = amount * 0.98;
-
     const newBet = new Bet({
-      username,
-      roundId,
-      timestamp: round.timestamp,
-      amount,
-      effectiveAmount,
+      user: req.user.id,
+      round: roundId,
+      type: betType,     // "color" or "number"
+      value: choice,     // "RED", "GREEN", "VIOLET" or 0-9
+      amount             // Original bet amount
     });
-
-    if (color) newBet.color = color;
-    if (number !== undefined) newBet.number = number;
 
     await newBet.save();
     res.status(201).json({ message: "Bet placed successfully", bet: newBet });
+
   } catch (error) {
-    console.error("Error placing bet:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Error placing bet:", error.message);
+    res.status(500).json({ error: "Server error while placing bet" });
   }
 });
 
-// ✅ Get all bets (for admin/debug)
-router.get("/", async (req, res) => {
+// (Optional) GET /api/bets/user/:userId - Get all bets of a user
+router.get("/user/:userId", async (req, res) => {
   try {
-    const bets = await Bet.find().sort({ createdAt: -1 });
+    const bets = await Bet.find({ user: req.params.userId }).populate("round");
     res.json(bets);
-  } catch (err) {
-    console.error("Error fetching bets:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-// ✅ Get bets for a specific user
-router.get("/user/:username", async (req, res) => {
-  try {
-    const { username } = req.params;
-    const bets = await Bet.find({ username }).sort({ createdAt: -1 });
-    res.json(bets);
-  } catch (err) {
-    console.error("Error fetching user bets:", err);
-    res.status(500).json({ error: "Server error" });
+  } catch (error) {
+    res.status(500).json({ error: "Error fetching bets" });
   }
 });
 
