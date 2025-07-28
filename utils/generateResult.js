@@ -1,4 +1,5 @@
 const Result = require('../models/Result');
+const Round = require('../models/Round');
 
 // Get color based on number
 function getColor(number) {
@@ -8,21 +9,35 @@ function getColor(number) {
   return 'UNKNOWN';
 }
 
-// Generate random result and store it in the Result collection
-const generateRandomResult = (roundId) => {
-  const resultNumber = Math.floor(Math.random() * 10); // 0–9
-  const resultColor = getColor(resultNumber);
+// Generate and save result in DB
+const generateAndSaveResult = async () => {
+  try {
+    // Get the latest round
+    const latestRound = await Round.findOne().sort({ createdAt: -1 });
 
-  const result = new Result({
-    roundId: roundId.toString(),
-    resultNumber,
-    resultColor,
-    timestamp: new Date(),
-  });
+    if (!latestRound) {
+      throw new Error('No round found to generate result for');
+    }
 
-  console.log(`[🎯] Generated result: ${resultNumber} (${resultColor}) for Round ${roundId}`);
+    const roundId = latestRound.roundId;
+    const resultNumber = Math.floor(Math.random() * 10); // 0–9
+    const resultColor = getColor(resultNumber);
 
-  return result;
+    const newResult = new Result({
+      roundId: roundId.toString(),
+      resultNumber,
+      resultColor,
+      timestamp: new Date()
+    });
+
+    await newResult.save();
+
+    console.log(`[🎯] Saved Result: ${resultNumber} (${resultColor}) for Round ${roundId}`);
+    return newResult;
+  } catch (err) {
+    console.error('[❌] Failed to generate result:', err.message);
+    throw err;
+  }
 };
 
-module.exports = { generateRandomResult };
+module.exports = generateAndSaveResult;
