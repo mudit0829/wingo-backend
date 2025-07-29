@@ -1,57 +1,59 @@
 const express = require('express');
 const router = express.Router();
-const bet = require('../models/bet');
-const user = require('../models/user');
+const Bet = require('../models/bet');
+const Round = require('../models/round');
+const User = require('../models/user');
 
-// POST new bet
+// PLACE A NEW BET
 router.post('/', async (req, res) => {
   try {
-    const { username, roundId, color, number, amount } = req.body;
-    const serviceFee = 0.02;
-    const effectiveAmount = amount - amount * serviceFee;
+    const { user, round, type, value, amount } = req.body;
 
-    const newBet = new bet({
-      username,
-      roundId,
-      color,
-      number,
+    if (!user || !round || !type || !value || !amount) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const existingUser = await User.findOne({ username: user });
+    if (!existingUser) return res.status(404).json({ message: 'User not found' });
+
+    const serviceFee = 0.02 * amount;
+    const effectiveAmount = amount - serviceFee;
+
+    const newBet = new Bet({
+      user,
+      round,
+      type,
+      value,
       amount,
       effectiveAmount,
-      timestamp: new Date(),
+      timestamp: new Date()
     });
 
     await newBet.save();
-
-    // Deduct balance from user wallet
-    const userData = await user.findOne({ username });
-    if (!userData) return res.status(404).json({ message: 'User not found' });
-
-    userData.wallet = (userData.wallet || 0) - amount;
-    await userData.save();
-
-    res.status(201).json({ message: 'Bet placed', newBet });
+    res.status(201).json({ message: 'Bet placed successfully', bet: newBet });
   } catch (error) {
+    console.error('Error placing bet:', error);
     res.status(500).json({ message: 'Error placing bet', error });
   }
 });
 
-// GET all bets
-router.get('/', async (req, res) => {
+// GET ALL BETS BY USERNAME
+router.get('/user/:username', async (req, res) => {
   try {
-    const allBets = await bet.find().sort({ timestamp: -1 });
-    res.json(allBets);
+    const bets = await Bet.find({ user: req.params.username });
+    res.json(bets);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch bets', error });
+    res.status(500).json({ message: 'Error fetching user bets', error });
   }
 });
 
-// GET bets by user
-router.get('/user/:username', async (req, res) => {
+// GET ALL BETS
+router.get('/', async (req, res) => {
   try {
-    const userBets = await bet.find({ username: req.params.username }).sort({ timestamp: -1 });
-    res.json(userBets);
+    const bets = await Bet.find();
+    res.json(bets);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching user bets', error });
+    res.status(500).json({ message: 'Error fetching all bets', error });
   }
 });
 
