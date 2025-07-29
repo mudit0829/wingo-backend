@@ -49,4 +49,5 @@ console.log('✅ All routes loaded');
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.statusCode === 400 && 'body' in err) {
     console.error('❌ Invalid JSON received:', err.body);
-    return res.status(400).json({ error: 'Invalid JSON payload' }
+    return res.status(400).json({ error: 'Invalid JSON payload' });
+
