@@ -1,53 +1,53 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const dotenv = require('dotenv');
 const cors = require('cors');
-const helmet = require('helmet'); // ✅ Security (optional)
+const dotenv = require('dotenv');
+const path = require('path');
 
-// Route imports
-const authRoutes = require('./routes/authRoutes');
-const gameRoutes = require('./routes/gameRoutes');
-const betRoutes = require('./routes/betRoutes');
-const roundRoutes = require('./routes/roundRoutes');
-const resultRoutes = require('./routes/resultRoutes');
-const walletRoutes = require('./routes/walletRoutes');
-const userRoutes = require('./routes/userRoutes');
-const cronRoutes = require('./routes/cronRoutes');
-
+// Load environment variables
 dotenv.config();
 
 const app = express();
 
-// Middlewares
+// Middleware
 app.use(cors());
-app.use(helmet()); // ✅ Optional security headers
-app.use(express.json({
-  verify: (req, res, buf) => {
-    try {
-      if (buf.length > 0) JSON.parse(buf);
-    } catch (err) {
-      err.statusCode = 400;
-      err.body = buf.toString();
-      throw err;
-    }
-  }
-}));
+app.use(express.json());
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/game', gameRoutes);
-app.use('/api/bets', betRoutes);
-app.use('/api/rounds', roundRoutes);
-app.use('/api/results', resultRoutes);
-app.use('/api/wallet', walletRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/cron', cronRoutes);
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+  })
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
-console.log('✅ All routes loaded');
-
-// JSON error handler
+// Error handler for bad JSON
 app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.statusCode === 400 && 'body' in err) {
-    console.error('❌ Invalid JSON received:', err.body);
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return res.status(400).json({ error: 'Invalid JSON payload' });
+  }
+  next();
+});
 
+// Routes
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/bets', require('./routes/betRoutes'));
+app.use('/api/rounds', require('./routes/roundRoutes'));
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/reset', require('./routes/resetRoute'));
+app.use('/api/cron', require('./routes/cronRoutes'));
+app.use('/api/game', require('./routes/gameRoutes'));
+app.use('/api/wallet', require('./routes/walletRoutes'));
+app.use('/api/results', require('./routes/resultRoutes'));
+
+// Default route
+app.get('/', (req, res) => {
+  res.send('WinGo backend is running');
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
