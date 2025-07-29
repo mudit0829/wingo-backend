@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const Bet = require("../models/Bet");
-const User = require("../models/User");
-const Round = require("../models/Round");
+const Bet = require("../models/bet");
+const User = require("../models/user");
+const Round = require("../models/round");
 
 // Place Bet API
 router.post("/", async (req, res) => {
