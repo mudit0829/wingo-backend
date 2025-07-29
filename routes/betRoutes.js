@@ -1,85 +1,57 @@
-// routes/betRoutes.js
-
 const express = require('express');
 const router = express.Router();
-const Bet = require('../models/bet');
-const User = require('../models/user');
-const Round = require('../models/round');
-const jwt = require('jsonwebtoken');
+const bet = require('../models/bet');
+const user = require('../models/user');
 
-// Middleware to verify token
-function verifyToken(req, res, next) {
-  const bearerHeader = req.headers['authorization'];
-  if (!bearerHeader) return res.status(403).json({ error: 'No token provided' });
-
-  const token = bearerHeader.split(' ')[1];
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' });
-    req.user = decoded;
-    next();
-  });
-}
-
-// POST /api/bets → Place a new bet
-router.post('/', verifyToken, async (req, res) => {
+// POST new bet
+router.post('/', async (req, res) => {
   try {
-    const { roundId, betType, choice, amount } = req.body;
+    const { username, roundId, color, number, amount } = req.body;
+    const serviceFee = 0.02;
+    const effectiveAmount = amount - amount * serviceFee;
 
-    if (!roundId || !betType || !choice || !amount) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-
-    const user = await User.findOne({ email: req.user.email });
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    const bet = new Bet({
-      user: user._id,
-      round: roundId,
-      type: betType,
-      value: choice,
-      amount
+    const newBet = new bet({
+      username,
+      roundId,
+      color,
+      number,
+      amount,
+      effectiveAmount,
+      timestamp: new Date(),
     });
 
-    await bet.save();
+    await newBet.save();
 
-    res.json({ message: 'Bet placed successfully', bet });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to place bet' });
+    // Deduct balance from user wallet
+    const userData = await user.findOne({ username });
+    if (!userData) return res.status(404).json({ message: 'User not found' });
+
+    userData.wallet = (userData.wallet || 0) - amount;
+    await userData.save();
+
+    res.status(201).json({ message: 'Bet placed', newBet });
+  } catch (error) {
+    res.status(500).json({ message: 'Error placing bet', error });
   }
 });
 
-// ✅ GET /api/bets/user/:username → Fetch all bets of a user
-router.get('/user/:username', verifyToken, async (req, res) => {
+// GET all bets
+router.get('/', async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.params.username });
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    const bets = await Bet.find({ user: user._id })
-      .populate('round', 'roundId timestamp result')
-      .sort({ createdAt: -1 });
-
-    res.json(bets);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching bets' });
+    const allBets = await bet.find().sort({ timestamp: -1 });
+    res.json(allBets);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch bets', error });
   }
 });
 
-// ✅ Admin: GET /api/bets → Get all bets
-router.get('/', verifyToken, async (req, res) => {
+// GET bets by user
+router.get('/user/:username', async (req, res) => {
   try {
-    if (req.user.role !== 'admin') return res.status(403).json({ error: 'Unauthorized' });
-
-    const bets = await Bet.find()
-      .populate('user', 'email')
-      .populate('round', 'roundId result timestamp')
-      .sort({ createdAt: -1 });
-
-    res.json(bets);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching all bets' });
+    const userBets = await bet.find({ username: req.params.username }).sort({ timestamp: -1 });
+    res.json(userBets);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user bets', error });
   }
 });
 
