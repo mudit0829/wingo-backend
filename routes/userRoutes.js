@@ -1,19 +1,28 @@
-const express = require("express");
+// routes/userRoutes.js
+const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
+const User = require('../models/user');
 
-const {
-  registerUser,
-  loginUser,
-  getWallet,
-} = require("../controllers/userController");
+// Get current user info from token
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Token missing' });
 
-const authenticate = require("../middleware/authenticate");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ username: decoded.username });
 
-// Auth
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-// Wallet (protected)
-router.get("/wallet", authenticate, getWallet);
+    res.json({
+      username: user.username,
+      wallet: user.wallet,
+      joinedAt: user.createdAt,
+    });
+  } catch (error) {
+    res.status(400).json({ message: 'Invalid token' });
+  }
+});
 
 module.exports = router;
