@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Round = require("../models/Round");
+const Round = require("../models/round");
 
 router.post("/cron/start-timer", async (req, res) => {
   const roundId = Date.now().toString();
