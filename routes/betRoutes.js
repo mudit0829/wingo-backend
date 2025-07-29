@@ -1,59 +1,81 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Bet = require('../models/bet');
-const Round = require('../models/round');
-const User = require('../models/user');
+const Bet = require("../models/Bet");
+const User = require("../models/User");
+const Round = require("../models/Round");
 
-// PLACE A NEW BET
-router.post('/', async (req, res) => {
+// Place Bet API
+router.post("/", async (req, res) => {
   try {
-    const { user, round, type, value, amount } = req.body;
+    const { user, round, bets } = req.body;
 
-    if (!user || !round || !type || !value || !amount) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    if (!user || !round || !Array.isArray(bets) || bets.length === 0) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const existingUser = await User.findOne({ username: user });
-    if (!existingUser) return res.status(404).json({ message: 'User not found' });
+    const userData = await User.findOne({ email: user });
+    const roundData = await Round.findOne({ roundId: round });
+    if (!userData || !roundData) {
+      return res.status(404).json({ message: "User or Round not found" });
+    }
 
-    const serviceFee = 0.02 * amount;
-    const effectiveAmount = amount - serviceFee;
+    let totalAmount = 0;
+    const betDocs = [];
 
-    const newBet = new Bet({
-      user,
-      round,
-      type,
-      value,
-      amount,
-      effectiveAmount,
-      timestamp: new Date()
-    });
+    for (const bet of bets) {
+      if (!["color", "number"].includes(bet.type) || bet.value === undefined || bet.amount <= 0) {
+        return res.status(400).json({ message: "Invalid bet format" });
+      }
 
-    await newBet.save();
-    res.status(201).json({ message: 'Bet placed successfully', bet: newBet });
+      const serviceFee = bet.amount * 0.02;
+      const effectiveAmount = bet.amount - serviceFee;
+      totalAmount += bet.amount;
+
+      betDocs.push(
+        new Bet({
+          user: userData.email,
+          round: roundData.roundId,
+          type: bet.type,
+          value: bet.value,
+          amount: bet.amount,
+          effectiveAmount: effectiveAmount,
+          timestamp: new Date()
+        })
+      );
+    }
+
+    if (userData.wallet < totalAmount) {
+      return res.status(400).json({ message: "Insufficient wallet balance" });
+    }
+
+    await Bet.insertMany(betDocs);
+    userData.wallet -= totalAmount;
+    await userData.save();
+
+    res.status(201).json({ message: "Bet(s) placed successfully" });
   } catch (error) {
-    console.error('Error placing bet:', error);
-    res.status(500).json({ message: 'Error placing bet', error });
+    console.error("Error placing bet:", error);
+    res.status(500).json({ message: "Error placing bet", error });
   }
 });
 
-// GET ALL BETS BY USERNAME
-router.get('/user/:username', async (req, res) => {
+// Get All Bets
+router.get("/", async (req, res) => {
   try {
-    const bets = await Bet.find({ user: req.params.username });
+    const bets = await Bet.find().sort({ timestamp: -1 });
     res.json(bets);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching user bets', error });
+    res.status(500).json({ message: "Error fetching bets", error });
   }
 });
 
-// GET ALL BETS
-router.get('/', async (req, res) => {
+// Get Bets for a User
+router.get("/user/:username", async (req, res) => {
   try {
-    const bets = await Bet.find();
+    const bets = await Bet.find({ user: req.params.username }).sort({ timestamp: -1 });
     res.json(bets);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching all bets', error });
+    res.status(500).json({ message: "Error fetching user bets", error });
   }
 });
 
