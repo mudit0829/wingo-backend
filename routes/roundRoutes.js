@@ -1,63 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-const Round = require('../models/round');
+const round = require('../models/round');
 
-// GET all rounds
+// GET all rounds (latest first)
 router.get('/', async (req, res) => {
   try {
-    const rounds = await Round.find().sort({ createdAt: -1 });
+    const rounds = await round.find().sort({ timestamp: -1 }).limit(50);
     res.json(rounds);
-  } catch (err) {
-    res.status(500).json({ error: 'Error fetching rounds' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch rounds', error });
   }
 });
 
-// GET current round (latest one)
-router.get('/current', async (req, res) => {
+// GET round by ID
+router.get('/:roundId', async (req, res) => {
   try {
-    const latestRound = await Round.findOne().sort({ createdAt: -1 });
-    if (!latestRound) {
-      return res.status(404).json({ error: 'No current round found' });
-    }
-    res.json(latestRound);
-  } catch (err) {
-    res.status(500).json({ error: 'Error fetching current round' });
-  }
-});
-
-// GET round by MongoDB _id (safe)
-router.get('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ error: 'Invalid round ID format' });
-    }
-
-    const round = await Round.findById(id);
-    if (!round) {
-      return res.status(404).json({ error: 'Round not found' });
-    }
-
-    res.json(round);
-  } catch (err) {
-    console.error('Error in /api/rounds/:id', err);
-    res.status(500).json({ error: 'Error fetching round by ID' });
-  }
-});
-
-// GET round by roundId (e.g. 1005)
-router.get('/by-roundId/:roundId', async (req, res) => {
-  try {
-    const round = await Round.findOne({ roundId: req.params.roundId });
-    if (!round) {
-      return res.status(404).json({ error: 'Round not found' });
-    }
-    res.json(round);
-  } catch (err) {
-    res.status(500).json({ error: 'Error fetching round by roundId' });
+    const foundRound = await round.findOne({ roundId: req.params.roundId });
+    if (!foundRound) return res.status(404).json({ message: 'Round not found' });
+    res.json(foundRound);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving round', error });
   }
 });
 
