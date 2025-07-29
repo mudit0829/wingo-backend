@@ -1,24 +1,44 @@
-const axios = require("axios");
+// utils/roundManager.js
+const Round = require("../models/round");
 
-function startLoop() {
+// Configurable round duration in milliseconds (30s round = 30000ms)
+const ROUND_DURATION_MS = 30000;
+
+let currentRound = null;
+
+const createNewRound = async () => {
+  try {
+    const now = new Date();
+
+    const round = new Round({
+      timestamp: now,
+    });
+
+    const savedRound = await round.save();
+    currentRound = savedRound;
+
+    console.log("✅ New round created:", savedRound._id);
+    return savedRound;
+  } catch (err) {
+    console.error("❌ Error creating round:", err);
+  }
+};
+
+const getCurrentRound = () => {
+  return currentRound;
+};
+
+// Auto-start the round timer
+const startRoundTimer = async () => {
+  await createNewRound(); // Create initial round immediately
+
   setInterval(async () => {
-    try {
-      const r = await axios.post("http://localhost:3000/cron/start-timer");
-      console.log('[📦] Round started:', r.data);
+    await createNewRound();
+  }, ROUND_DURATION_MS);
+};
 
-      setTimeout(() => {
-        axios.post("http://localhost:3000/cron/generate-result", {
-          roundId: r.data.round.roundId
-        }).then(res => {
-          console.log('[🎯] Result generated:', res.data);
-        }).catch(err => {
-          console.error('[❌] Error generating result:', err.message);
-        });
-      }, 25000); // wait 25 seconds for betting
-    } catch (err) {
-      console.error('[❌] Error starting round:', err.message);
-    }
-  }, 30000); // every 30s
-}
-
-module.exports = { startLoop };
+module.exports = {
+  createNewRound,
+  getCurrentRound,
+  startRoundTimer,
+};
