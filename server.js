@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const userRoutes = require("./routes/userRoutes");
 const createTestUsersRoute = require('./routes/createTestUsersRoute');
+const resetRoute = require("./routes/resetRoute");
 
 // Load environment variables
 dotenv.config();
