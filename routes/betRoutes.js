@@ -1,51 +1,44 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const Bet = require("../models/bet");
-const User = require("../models/user");
-const Round = require("../models/round");
+const Bet = require('../models/bet');
+const User = require('../models/user');
 
-// Place a bet
-router.post("/", async (req, res) => {
+router.post('/', async (req, res) => {
   try {
-    const { email, colorBet, numberBet, roundId, amount } = req.body;
+    const { email, roundId, color, number, amount } = req.body;
 
-    // Check if user exists by email
+    if (!email || !roundId || !amount) {
+      return res.status(400).json({ message: 'Missing fields' });
+    }
+
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Check if round exists
-    const round = await Round.findOne({ roundId });
-    if (!round) {
-      return res.status(404).json({ message: "Round not found" });
-    }
-
-    // Deduct amount from wallet
-    const serviceFee = amount * 0.02;
-    const netAmount = amount - serviceFee;
+    const serviceFee = 0.02 * amount;
+    const finalAmount = amount - serviceFee;
 
     if (user.balance < amount) {
-      return res.status(400).json({ message: "Insufficient balance" });
+      return res.status(400).json({ message: 'Insufficient balance' });
     }
-
-    user.balance -= amount;
-    await user.save();
 
     const newBet = new Bet({
       email,
-      colorBet,
-      numberBet,
       roundId,
-      timestamp: new Date(),
-      amount: netAmount,
+      color,
+      number,
+      amount,
+      effectiveAmount: finalAmount,
+      timestamp: new Date()
     });
 
+    user.balance -= amount;
+    await user.save();
     await newBet.save();
-    res.status(201).json({ message: "Bet placed successfully", newBet });
-  } catch (error) {
-    console.error("POST /api/bets error:", error);
-    res.status(500).json({ message: "Server error" });
+
+    res.json({ message: 'Bet placed', bet: newBet, remainingBalance: user.balance });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
