@@ -71,13 +71,13 @@ router.get('/user/:username', async (req, res) => {
 });
 
 // GET /api/bets - Get all bets (admin view)
-router.get('/', async (req, res) => {
+router.get('/user/:username', async (req, res) => {
   try {
-    const bets = await Bet.find().sort({ timestamp: -1 }).limit(100);
+    const { username } = req.params;
+    const bets = await Bet.find({ username }).sort({ timestamp: -1 }).limit(50);
     res.json(bets);
   } catch (err) {
-    console.error('Error fetching bets:', err);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ error: err.message });
   }
 });
 
