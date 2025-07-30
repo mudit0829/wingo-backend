@@ -1,5 +1,3 @@
-// routes/betRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const Bet = require('../models/bet');
@@ -22,6 +20,15 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Check for sufficient wallet balance
+    if (user.wallet < amount) {
+      return res.status(400).json({ message: 'Insufficient wallet balance' });
+    }
+
+    // Deduct wallet balance
+    user.wallet -= amount;
+    await user.save();
+
     // Apply service fee (2%)
     const netAmount = Math.floor(amount * 0.98);
 
@@ -37,7 +44,11 @@ router.post('/', async (req, res) => {
 
     await newBet.save();
 
-    res.status(201).json({ message: 'Bet placed successfully', bet: newBet });
+    res.status(201).json({
+      message: 'Bet placed successfully',
+      bet: newBet,
+      newWalletBalance: user.wallet
+    });
   } catch (error) {
     console.error('Bet Error:', error);
     res.status(500).json({ message: 'Server error' });
