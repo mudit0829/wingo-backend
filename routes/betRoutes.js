@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const Bet = require('../models/Bet');
-const Round = require('../models/Round');
-const User = require('../models/User');
+const Bet = require('../models/bet');
+const Round = require('../models/round');
+const User = require('../models/user');
 const jwt = require('jsonwebtoken');
 const authenticate = require('../middleware/authenticate');
 
