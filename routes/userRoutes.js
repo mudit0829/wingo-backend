@@ -1,3 +1,10 @@
+// routes/userRoutes.js
+
+const express = require('express');
+const router = express.Router();
+const User = require('../models/User');
+
+// Wallet balance fetch route
 router.get('/wallet/:email', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.params.email });
@@ -10,3 +17,5 @@ router.get('/wallet/:email', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+module.exports = router;
