@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const User = require('../models/user');
 
 // Wallet balance fetch route
 router.get('/wallet/:email', async (req, res) => {
