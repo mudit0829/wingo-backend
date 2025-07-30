@@ -5,7 +5,7 @@ const Round = require('../models/round');
 const User = require('../models/user');
 const authenticate = require('../middleware/authenticate');
 
-// POST /api/bets
+// POST /api/bets - Place a bet
 router.post('/', authenticate, async (req, res) => {
   try {
     const userId = req.user._id;
@@ -22,41 +22,59 @@ router.post('/', authenticate, async (req, res) => {
     if (!round) return res.status(404).json({ message: 'Round not found' });
 
     const serviceFee = 0.02;
-    let totalBetCost = 0;
+    const effectiveAmountPerBet = betAmount;
+    let totalAmount = 0;
 
-    // Calculate total cost with fee for color bet
-    if (colorBet) {
-      totalBetCost += betAmount + (betAmount * serviceFee);
-    }
+    if (colorBet) totalAmount += effectiveAmountPerBet;
+    if (numberBet !== undefined) totalAmount += effectiveAmountPerBet;
 
-    // Calculate total cost with fee for number bet
-    if (numberBet !== undefined && numberBet !== null && numberBet !== '') {
-      totalBetCost += betAmount + (betAmount * serviceFee);
-    }
+    const fee = totalAmount * serviceFee;
+    const totalDeduct = totalAmount + fee;
 
-    if (user.wallet < totalBetCost) {
+    if (user.wallet < totalDeduct) {
       return res.status(400).json({ message: 'Insufficient wallet balance' });
     }
 
-    // Store bet
     const newBet = new Bet({
       user: user.username,
       roundId,
-      colorBet: colorBet || null,
-      numberBet: numberBet !== undefined ? numberBet : null,
+      colorBet,
+      numberBet,
       betAmount,
-      timestamp: new Date(),
+      timestamp: new Date()
     });
 
     await newBet.save();
 
-    // Deduct wallet amount
-    user.wallet -= totalBetCost;
+    user.wallet -= totalDeduct;
     await user.save();
 
-    return res.status(201).json({ message: 'Bet placed successfully', wallet: user.wallet });
+    res.status(201).json({ message: 'Bet placed successfully', wallet: user.wallet });
   } catch (err) {
     console.error('Error placing bet:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// GET /api/bets/user/:username - Get user bets
+router.get('/user/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const bets = await Bet.find({ user: username }).sort({ timestamp: -1 }).limit(20);
+    res.json(bets);
+  } catch (err) {
+    console.error('Error fetching user bets:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// GET /api/bets - Get all bets (admin view)
+router.get('/', async (req, res) => {
+  try {
+    const bets = await Bet.find().sort({ timestamp: -1 }).limit(100);
+    res.json(bets);
+  } catch (err) {
+    console.error('Error fetching bets:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
