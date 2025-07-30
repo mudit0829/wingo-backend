@@ -2,29 +2,30 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
 
-// Get wallet balance by username
-router.get('/wallet/:username', async (req, res) => {
-  const { username } = req.params;
+// GET wallet balance by email
+router.get('/wallet/:email', async (req, res) => {
   try {
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email: req.params.email });
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json({ wallet: user.wallet });
+
+    res.json({ balance: user.balance });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Update wallet by username
+// POST update wallet
 router.post('/update-wallet', async (req, res) => {
-  const { username, amount } = req.body;
+  const { email, amount } = req.body;
   try {
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
-    user.wallet += amount;
+
+    user.balance += amount;
     await user.save();
-    res.json({ message: 'Wallet updated', wallet: user.wallet });
+    res.json({ message: 'Wallet updated', newBalance: user.balance });
   } catch (err) {
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
