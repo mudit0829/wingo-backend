@@ -1,35 +1,37 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const User = require('../models/user');
-const authenticate = require('../middleware/authenticate');
+const User = require("../models/user");
 
-// GET /api/users/wallet - Get wallet balance of authenticated user
-router.get('/wallet', authenticate, async (req, res) => {
+// Get wallet
+router.get("/wallet/:username", async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     res.json({ wallet: user.wallet });
-  } catch (err) {
-    console.error('Error fetching wallet:', err);
-    res.status(500).json({ message: 'Internal server error' });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
-// POST /api/users/update-wallet - Add or subtract balance
-router.post('/update-wallet', authenticate, async (req, res) => {
+// Update wallet
+router.post("/update-wallet", async (req, res) => {
   try {
-    const { amount } = req.body; // Can be + or -
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const { username, amount } = req.body;
+
+    if (!username || amount == null)
+      return res.status(400).json({ message: "Missing fields" });
+
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
     user.wallet += amount;
     await user.save();
 
-    res.json({ message: 'Wallet updated successfully', wallet: user.wallet });
-  } catch (err) {
-    console.error('Error updating wallet:', err);
-    res.status(500).json({ message: 'Internal server error' });
+    res.json({ message: "Wallet updated", wallet: user.wallet });
+  } catch (error) {
+    console.error("Wallet Update Error:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
