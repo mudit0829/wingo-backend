@@ -1,38 +1,46 @@
 const express = require('express');
+const router = express.Router();
 const Bet = require('../models/bet');
 const User = require('../models/user');
-const router = express.Router();
 
+// POST place bet
 router.post('/', async (req, res) => {
   const { email, roundId, colorBet, numberBet, amount } = req.body;
-
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const totalBetAmount = amount;
-    if (user.balance < totalBetAmount) {
-      return res.status(400).json({ message: 'Insufficient balance' });
-    }
+    if (user.balance < amount) return res.status(400).json({ message: 'Insufficient balance' });
 
-    const newBet = new Bet({ email, roundId, colorBet, numberBet, amount });
-    await newBet.save();
+    const serviceFee = amount * 0.02;
+    const finalAmount = amount - serviceFee;
 
-    user.balance -= totalBetAmount;
+    const bet = new Bet({
+      email,
+      roundId,
+      colorBet,
+      numberBet,
+      amount: finalAmount,
+      timestamp: new Date()
+    });
+
+    await bet.save();
+    user.balance -= amount;
     await user.save();
 
-    res.status(201).json({ message: 'Bet placed', balance: user.balance });
+    res.json({ message: 'Bet placed successfully', bet });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });
 
+// GET user bets by email
 router.get('/user/:email', async (req, res) => {
   try {
     const bets = await Bet.find({ email: req.params.email });
     res.json(bets);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching bets' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
