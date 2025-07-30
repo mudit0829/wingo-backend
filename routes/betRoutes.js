@@ -11,7 +11,7 @@ router.post('/', authenticate, async (req, res) => {
     const userId = req.user._id;
     const { roundId, colorBet, numberBet, betAmount } = req.body;
 
-    if (!roundId || !betAmount || (!colorBet && numberBet === undefined)) {
+    if (!roundId || betAmount == null || (colorBet == null && numberBet == null)) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
@@ -19,14 +19,16 @@ router.post('/', authenticate, async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const round = await Round.findOne({ roundId });
-    if (!round) return res.status(404).json({ message: 'Round not found' });
+    if (!round) {
+      console.warn(`Round not found for roundId: ${roundId}`);
+      return res.status(404).json({ message: 'Round not found' });
+    }
 
     const serviceFee = 0.02;
-    const effectiveAmountPerBet = betAmount;
     let totalAmount = 0;
 
-    if (colorBet) totalAmount += effectiveAmountPerBet;
-    if (numberBet !== undefined) totalAmount += effectiveAmountPerBet;
+    if (colorBet != null) totalAmount += betAmount;
+    if (numberBet != null) totalAmount += betAmount;
 
     const fee = totalAmount * serviceFee;
     const totalDeduct = totalAmount + fee;
