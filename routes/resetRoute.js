@@ -1,11 +1,41 @@
 const express = require("express");
-const router = express.Router();
-const Round = require("../models/round");
+const bcrypt = require("bcryptjs");
+const User = require("../models/user");
 
-router.post("/cron/start-timer", async (req, res) => {
-  const roundId = Date.now().toString();
-  const round = await Round.create({ roundId, startTime: new Date(), endTime: new Date(Date.now() + 30000) });
-  res.json({ msg: "New round started", round });
+const router = express.Router();
+
+// Create test users when this route is called
+router.get("/reset-test-users", async (req, res) => {
+  try {
+    const users = [
+      {
+        email: "admin@example.com",
+        password: "admin123",
+        role: "admin",
+        wallet: 1000,
+      },
+      {
+        email: "test2@example.com",
+        password: "123456",
+        role: "user",
+        wallet: 500,
+      },
+    ];
+
+    for (const user of users) {
+      const existing = await User.findOne({ email: user.email });
+      if (!existing) {
+        const hashed = await bcrypt.hash(user.password, 10);
+        await User.create({ ...user, password: hashed });
+        console.log(`Created: ${user.email}`);
+      }
+    }
+
+    res.json({ message: "Test users created or already exist" });
+  } catch (err) {
+    console.error("Reset error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 module.exports = router;
