@@ -1,44 +1,56 @@
+// routes/betRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const Bet = require('../models/bet');
+const Round = require('../models/round');
 const User = require('../models/user');
 
+// POST /api/bets
 router.post('/', async (req, res) => {
   try {
-    const { email, roundId, color, number, amount } = req.body;
+    const { email, roundId, colorBet, numberBet, amount } = req.body;
 
-    if (!email || !roundId || !amount) {
-      return res.status(400).json({ message: 'Missing fields' });
+    if (!email || !roundId || !amount || (!colorBet && numberBet === undefined)) {
+      return res.status(400).json({ message: 'Missing required fields' });
     }
 
+    // Fetch user by email
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const serviceFee = 0.02 * amount;
-    const finalAmount = amount - serviceFee;
-
-    if (user.balance < amount) {
-      return res.status(400).json({ message: 'Insufficient balance' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    // Apply service fee (2%)
+    const netAmount = Math.floor(amount * 0.98);
 
     const newBet = new Bet({
       email,
       roundId,
-      color,
-      number,
       amount,
-      effectiveAmount: finalAmount,
+      netAmount,
+      colorBet: colorBet || null,
+      numberBet: numberBet !== undefined ? numberBet : null,
       timestamp: new Date()
     });
 
-    user.balance -= amount;
-    await user.save();
     await newBet.save();
 
-    res.json({ message: 'Bet placed', bet: newBet, remainingBalance: user.balance });
-  } catch (err) {
-    console.error(err);
+    res.status(201).json({ message: 'Bet placed successfully', bet: newBet });
+  } catch (error) {
+    console.error('Bet Error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// GET /api/bets/user/:email
+router.get('/user/:email', async (req, res) => {
+  try {
+    const bets = await Bet.find({ email: req.params.email });
+    res.json(bets);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching bets' });
   }
 });
 
