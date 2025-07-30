@@ -1,13 +1,37 @@
 const mongoose = require('mongoose');
 
 const betSchema = new mongoose.Schema({
-  user: { type: String, required: true },
-  round: { type: String, required: true },
-  type: { type: String, required: true }, // 'color' or 'number'
-  value: { type: String, required: true }, // e.g. 'red', 'green', '5'
-  amount: { type: Number, required: true },
-  effectiveAmount: { type: Number },
-  timestamp: { type: Date, default: Date.now }
+  email: {
+    type: String,
+    required: true
+  },
+  roundId: {
+    type: String,
+    required: true
+  },
+  colorBet: {
+    type: String,
+    enum: ['Red', 'Green', 'Violet', null],
+    default: null
+  },
+  numberBet: {
+    type: Number,
+    min: 0,
+    max: 9,
+    default: null
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  netAmount: {
+    type: Number,
+    required: true
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-module.exports = mongoose.model('bet', betSchema);
+module.exports = mongoose.model('Bet', betSchema);
