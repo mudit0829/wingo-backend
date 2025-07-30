@@ -1,40 +1,57 @@
-const express = require("express");
-const bcrypt = require("bcryptjs");
-const User = require("../models/user");
-
+const express = require('express');
 const router = express.Router();
+const User = require('../models/user');
+const bcrypt = require('bcryptjs');
 
-// Create test users when this route is called
-router.get("/reset-test-users", async (req, res) => {
+router.get('/reset-test-users', async (req, res) => {
   try {
-    const users = [
+    const testUsers = [
       {
-        email: "admin@example.com",
-        password: "admin123",
-        role: "admin",
-        wallet: 1000,
+        username: 'test1',
+        email: 'test1@example.com',
+        password: '123456',
+        role: 'user',
+        wallet: 1000
       },
       {
-        email: "test2@example.com",
-        password: "123456",
-        role: "user",
-        wallet: 500,
+        username: 'test2',
+        email: 'test2@example.com',
+        password: '123456',
+        role: 'user',
+        wallet: 1000
       },
+      {
+        username: 'admin',
+        email: 'admin@example.com',
+        password: 'admin123',
+        role: 'admin',
+        wallet: 1000
+      }
     ];
 
-    for (const user of users) {
-      const existing = await User.findOne({ email: user.email });
-      if (!existing) {
-        const hashed = await bcrypt.hash(user.password, 10);
-        await User.create({ ...user, password: hashed });
-        console.log(`Created: ${user.email}`);
+    for (const userData of testUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
+
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+      if (!existingUser) {
+        await User.create({
+          ...userData,
+          password: hashedPassword
+        });
+      } else {
+        existingUser.username = userData.username;
+        existingUser.password = hashedPassword;
+        existingUser.role = userData.role;
+        existingUser.wallet = userData.wallet;
+        await existingUser.save();
       }
     }
 
-    res.json({ message: "Test users created or already exist" });
+    res.json({ message: 'Test users created or updated successfully' });
   } catch (err) {
-    console.error("Reset error:", err);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error('Error creating test users:', err);
+    res.status(500).json({ error: 'Failed to create test users' });
   }
 });
 
