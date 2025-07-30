@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const userRoutes = require("./routes/userRoutes");
+const createTestUsersRoute = require('./routes/createTestUsersRoute');
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,7 @@ app.use('/api/cron', require('./routes/cronRoutes'));
 app.use('/api/game', require('./routes/gameRoutes'));
 app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/results', require('./routes/resultRoutes'));
+app.use('/api/test-users', createTestUsersRoute);
 
 // Default route
 app.get('/', (req, res) => {
