@@ -1,46 +1,51 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const Bet = require('../models/bet');
-const User = require('../models/user');
+const Bet = require("../models/bet");
+const User = require("../models/user");
+const Round = require("../models/round");
 
-// POST place bet
-router.post('/', async (req, res) => {
-  const { email, roundId, colorBet, numberBet, amount } = req.body;
+// Place a bet
+router.post("/", async (req, res) => {
   try {
+    const { email, colorBet, numberBet, roundId, amount } = req.body;
+
+    // Check if user exists by email
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    if (user.balance < amount) return res.status(400).json({ message: 'Insufficient balance' });
+    // Check if round exists
+    const round = await Round.findOne({ roundId });
+    if (!round) {
+      return res.status(404).json({ message: "Round not found" });
+    }
 
+    // Deduct amount from wallet
     const serviceFee = amount * 0.02;
-    const finalAmount = amount - serviceFee;
+    const netAmount = amount - serviceFee;
 
-    const bet = new Bet({
-      email,
-      roundId,
-      colorBet,
-      numberBet,
-      amount: finalAmount,
-      timestamp: new Date()
-    });
+    if (user.balance < amount) {
+      return res.status(400).json({ message: "Insufficient balance" });
+    }
 
-    await bet.save();
     user.balance -= amount;
     await user.save();
 
-    res.json({ message: 'Bet placed successfully', bet });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+    const newBet = new Bet({
+      email,
+      colorBet,
+      numberBet,
+      roundId,
+      timestamp: new Date(),
+      amount: netAmount,
+    });
 
-// GET user bets by email
-router.get('/user/:email', async (req, res) => {
-  try {
-    const bets = await Bet.find({ email: req.params.email });
-    res.json(bets);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    await newBet.save();
+    res.status(201).json({ message: "Bet placed successfully", newBet });
+  } catch (error) {
+    console.error("POST /api/bets error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
