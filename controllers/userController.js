@@ -3,18 +3,16 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 
-// Generate JWT token
+// Generate JWT
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: "30d",
   });
 };
 
-// @desc    Register new user
-// @route   POST /api/users/register
-// @access  Public
+// Register user
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, username } = req.body;
+  const { name, email, password } = req.body;
 
   const userExists = await User.findOne({ email });
   if (userExists) {
@@ -28,9 +26,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const user = await User.create({
     name,
     email,
-    username,
     password: hashedPassword,
-    wallet: 1000, // Default starting wallet, optional
   });
 
   if (user) {
@@ -38,8 +34,6 @@ const registerUser = asyncHandler(async (req, res) => {
       _id: user.id,
       name: user.name,
       email: user.email,
-      username: user.username,
-      wallet: user.wallet,
       token: generateToken(user.id),
     });
   } else {
@@ -48,9 +42,7 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Login user
-// @route   POST /api/users/login
-// @access  Public
+// Login user
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -61,24 +53,30 @@ const loginUser = asyncHandler(async (req, res) => {
       _id: user.id,
       name: user.name,
       email: user.email,
-      username: user.username,
-      wallet: user.wallet,
       token: generateToken(user.id),
     });
   } else {
     res.status(401);
-    throw new Error("Invalid credentials");
+    throw new Error("Invalid email or password");
   }
 });
 
-// @desc    Get wallet by username
-// @route   GET /api/users/wallet/:username
-// @access  Public (or you can secure it)
+// Get wallet balance by logged-in user
 const getWallet = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ username: req.params.username });
+  const user = await User.findById(req.user._id);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
+  }
+  res.json({ balance: user.balance });
+});
+
+// ✅ New: Get wallet balance by username
+const getWalletByUsername = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ username: req.params.username });
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
   }
   res.json({ wallet: user.wallet });
 });
@@ -87,4 +85,5 @@ module.exports = {
   registerUser,
   loginUser,
   getWallet,
+  getWalletByUsername,
 };
