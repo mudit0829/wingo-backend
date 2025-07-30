@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
 
-// Get user wallet by email
-router.get('/:email', async (req, res) => {
+// ✅ Get user wallet by email
+router.get('/wallet/:email', async (req, res) => {
   try {
     const user = await User.findOne({ email: req.params.email });
     if (!user) {
@@ -15,8 +15,8 @@ router.get('/:email', async (req, res) => {
   }
 });
 
-// Update user wallet
-router.post('/update-wallet', async (req, res) => {
+// ✅ Update user wallet
+router.post('/wallet/update', async (req, res) => {
   try {
     const { email, amount } = req.body;
     const user = await User.findOne({ email });
