@@ -21,12 +21,12 @@ router.post('/', async (req, res) => {
     }
 
     // Check for sufficient wallet balance
-    if (user.wallet < amount) {
+    if (user.balance < amount) {
       return res.status(400).json({ message: 'Insufficient wallet balance' });
     }
 
     // Deduct wallet balance
-    user.wallet -= amount;
+    user.balance -= amount;
     await user.save();
 
     // Apply service fee (2%)
