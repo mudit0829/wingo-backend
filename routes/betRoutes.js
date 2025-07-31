@@ -47,7 +47,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({
       message: 'Bet placed successfully',
       bet: newBet,
-      newWalletBalance: user.wallet
+      newWalletBalance: user.balance
     });
   } catch (error) {
     console.error('Bet Error:', error);
