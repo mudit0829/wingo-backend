@@ -1,5 +1,5 @@
 const Round = require('../models/round');
-const generateResult = require('../utils/generateResult');
+const generateResult = require('./utils/generateResult');
 
 let currentRound = null;
 let roundCounter = 1;
