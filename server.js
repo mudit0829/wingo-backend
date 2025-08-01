@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const { startGameLoop } = require('./gameLoop'); // ✅ Import game loop
 
 dotenv.config();
 
@@ -27,3 +28,8 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// ✅ Start automatic game loop every 30 seconds
+setInterval(() => {
+  startGameLoop();
+}, 30000);
