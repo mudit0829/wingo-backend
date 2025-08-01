@@ -22,13 +22,16 @@ app.use('/api/bets', betRoutes);
 app.use('/api/rounds', roundRoutes);
 
 // Start the game loop
-const startGameLoop = require('./utils/gameLoop');
-startGameLoop(); // Starts the 30-second round cycle
+const startGameLoop = require('./gameLoop');
 
-// Connect to MongoDB and start server
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB Connected');
-    app.listen(5000, () => console.log('Server running on port 5000'));
+    app.listen(5000, () => {
+      console.log('Server running on port 5000');
+      startGameLoop(); // <== Start the game loop after server starts
+    });
   })
   .catch(err => console.log(err));
+
+
