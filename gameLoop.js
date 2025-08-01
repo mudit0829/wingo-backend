@@ -1,31 +1,50 @@
 const Round = require('./models/round');
 const generateResult = require('./utils/generateResult');
+const Bet = require('./models/bet');
+const User = require('./models/user');
 
-// Starts a new round every 30 seconds
-async function startGameLoop() {
+let currentRound = null;
+
+async function startNewRound() {
   try {
-    const now = new Date();
-
-    // Generate a unique roundId based on date/time
-    const roundId = `R-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-
-    // Create the round in the DB
-    const newRound = new Round({
-      roundId,
-      timestamp: now
+    const round = new Round({
+      roundId: Date.now().toString(),
+      timestamp: new Date(),
     });
-
-    await newRound.save();
-
-    console.log(`✅ New round started: ${roundId}`);
-
-    // Wait 25s for bets, then generate result
-    setTimeout(() => {
-      generateResult(roundId);
-    }, 25000); // 25 seconds
-  } catch (err) {
-    console.error('❌ Error in startGameLoop:', err.message);
+    await round.save();
+    currentRound = round;
+    console.log(`✅ New round started: ${round.roundId}`);
+  } catch (error) {
+    console.error('❌ Error starting new round:', error);
   }
 }
 
-module.exports = { startGameLoop };
+async function endCurrentRound() {
+  try {
+    if (!currentRound) return;
+
+    const result = generateResult();
+    currentRound.resultColor = result.color;
+    currentRound.resultNumber = result.number;
+    currentRound.timestamp = new Date();
+    await currentRound.save();
+
+    console.log(`🎯 Result for round ${currentRound.roundId}: ${result.color} ${result.number}`);
+
+    // Payout logic
+    const bets = await Bet.find({ roundId: currentRound.roundId });
+    for (const bet of bets) {
+      const user = await User.findOne({ email: bet.username });
+      if (!user) continue;
+
+      let totalWin = 0;
+      const betAmount = bet.amount;
+      const effectiveAmount = betAmount * 0.98;
+
+      if (bet.color && result.color === bet.color) {
+        if (bet.color === 'Violet') totalWin += effectiveAmount * 4.5;
+        else if (result.number === 5 || result.number === 0) totalWin += effectiveAmount * 1.5;
+        else totalWin += effectiveAmount * 2;
+      }
+
+      if (bet.number !== null &&
