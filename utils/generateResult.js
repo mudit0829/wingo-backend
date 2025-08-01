@@ -1,6 +1,6 @@
 // generateResult.js
 
-const Bet = require('./models/bet'); // <-- case-sensitive fix
+const Bet = require('../models/bet'); // <-- case-sensitive fix
 const Round = require('./models/round');
 const Result = require('./models/result');
 
