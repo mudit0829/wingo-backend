@@ -1,6 +1,7 @@
 const Round = require('../models/round');
 const Bet = require('../models/bet');
 const User = require('../models/user');
+const Result = require('../models/result'); // ✅ ADD THIS
 
 function getColor(resultNumber) {
   if (resultNumber === 0 || resultNumber === 5) return 'Violet';
@@ -26,7 +27,6 @@ async function generateResult(roundId) {
 
     for (const bet of bets) {
       const effectiveAmount = bet.amount * 0.98;
-
       let payout = 0;
 
       // Color bet
@@ -51,12 +51,19 @@ async function generateResult(roundId) {
         payout += effectiveAmount * 9;
       }
 
-      // Update user's wallet
-      if (payout > 0 && !settledUsers.has(bet.username)) {
-        await User.updateOne({ username: bet.username }, { $inc: { wallet: payout } });
-        settledUsers.add(bet.username);
+      if (payout > 0 && !settledUsers.has(bet.email)) {
+        await User.updateOne({ email: bet.email }, { $inc: { wallet: payout } });
+        settledUsers.add(bet.email);
       }
     }
+
+    // ✅ Save result to `Result` collection
+    await new Result({
+      roundId,
+      number: resultNumber,
+      color: resultColor,
+      timestamp: round.timestamp
+    }).save();
 
     console.log(`🎯 Result for Round ${roundId}: Number ${resultNumber}, Color ${resultColor}`);
   } catch (err) {
