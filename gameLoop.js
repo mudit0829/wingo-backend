@@ -1,4 +1,4 @@
-const Round = require('./models/Round');
+const Round = require('./models/round');
 const generateResult = require('./utils/generateResult');
 
 // Starts a new round every 30 seconds
