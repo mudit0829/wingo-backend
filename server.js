@@ -22,7 +22,7 @@ app.use('/api/bets', betRoutes);
 app.use('/api/rounds', roundRoutes);
 
 // Start the game loop
-const startGameLoop = require('./gameLoop');
+const startGameLoop = require('./utils/gameLoop');
 startGameLoop(); // Starts the 30-second round cycle
 
 // Connect to MongoDB and start server
