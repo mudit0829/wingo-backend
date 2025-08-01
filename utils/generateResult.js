@@ -30,9 +30,9 @@ async function generateResult(roundId) {
     const settledUsers = new Set();
 
     for (const bet of bets) {
-      // If any required field is missing in existing bet (should not happen), skip it
+      // Skip bet if required fields are missing
       if (!bet.amount || !bet.email || typeof bet.roundId === 'undefined') {
-        console.warn('⚠️ Skipping invalid bet:', bet);
+        console.warn('⚠️ Skipping invalid bet:', bet._id);
         continue;
       }
 
@@ -40,7 +40,7 @@ async function generateResult(roundId) {
       let payout = 0;
       let isWin = false;
 
-      // Color bet logic
+      // Color logic
       if (bet.color) {
         if (bet.color === 'Violet' && [0, 5].includes(resultNumber)) {
           payout += effectiveAmount * 4.5;
@@ -60,7 +60,7 @@ async function generateResult(roundId) {
         }
       }
 
-      // Number bet logic
+      // Number logic
       if (typeof bet.number === 'number' && bet.number === resultNumber) {
         payout += effectiveAmount * 9;
         isWin = true;
@@ -69,11 +69,17 @@ async function generateResult(roundId) {
       bet.isWin = isWin;
       bet.payout = payout;
 
-      // Save only if bet is valid
-      await bet.save();
+      // Avoid validation error when saving
+      await Bet.updateOne(
+        { _id: bet._id },
+        { isWin, payout }
+      );
 
       if (payout > 0 && !settledUsers.has(bet.email)) {
-        await User.updateOne({ email: bet.email }, { $inc: { wallet: payout } });
+        await User.updateOne(
+          { email: bet.email },
+          { $inc: { wallet: payout } }
+        );
         settledUsers.add(bet.email);
       }
     }
@@ -87,7 +93,7 @@ async function generateResult(roundId) {
 
     console.log(`✅ Round ${roundId} - Result: ${resultNumber} (${resultColor})`);
   } catch (err) {
-    console.error('❌ Error generating result:', err);
+    console.error('❌ Error generating result:', err.message || err);
   }
 }
 
