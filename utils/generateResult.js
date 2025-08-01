@@ -1,6 +1,6 @@
 // generateResult.js
 
-const Bet = require('./models/bet');
+const Bet = require('./models/bet'); // <-- case-sensitive fix
 const Round = require('./models/round');
 const Result = require('./models/result');
 
@@ -56,6 +56,7 @@ async function processBets(roundId, resultNumber, resultColor) {
     let winAmount = 0;
     const feePercent = 0.02;
 
+    // Color bet evaluation
     if (bet.colorBet) {
       const actualColorBet = bet.color;
       const effectiveAmount = bet.colorBet * (1 - feePercent);
@@ -74,6 +75,7 @@ async function processBets(roundId, resultNumber, resultColor) {
       }
     }
 
+    // Number bet evaluation
     if (bet.numberBet !== null && bet.numberBet !== undefined) {
       const effectiveAmount = bet.numberBet * (1 - feePercent);
       if (resultNumber === bet.numberBetValue) {
