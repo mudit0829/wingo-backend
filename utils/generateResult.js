@@ -1,7 +1,7 @@
 const Round = require('../models/round');
 const Bet = require('../models/bet');
 const User = require('../models/user');
-const Result = require('../models/result'); // ✅ ADD THIS
+const Result = require('../models/result');
 
 function getColor(resultNumber) {
   if (resultNumber === 0 || resultNumber === 5) return 'Violet';
@@ -23,41 +23,53 @@ async function generateResult(roundId) {
     await round.save();
 
     const bets = await Bet.find({ roundId });
+
     const settledUsers = new Set();
 
     for (const bet of bets) {
       const effectiveAmount = bet.amount * 0.98;
       let payout = 0;
+      let isWin = false;
 
-      // Color bet
+      // Color bet logic
       if (bet.color) {
         if (bet.color === 'Violet' && [0, 5].includes(resultNumber)) {
           payout += effectiveAmount * 4.5;
+          isWin = true;
         } else if (
           bet.color === 'Green' && [1, 3, 7, 9].includes(resultNumber) ||
           bet.color === 'Red' && [2, 4, 6, 8].includes(resultNumber)
         ) {
           payout += effectiveAmount * 2;
+          isWin = true;
         } else if (
           bet.color === 'Green' && resultNumber === 5 ||
           bet.color === 'Red' && resultNumber === 0
         ) {
           payout += effectiveAmount * 1.5;
+          isWin = true;
         }
       }
 
-      // Number bet
+      // Number bet logic
       if (typeof bet.number === 'number' && bet.number === resultNumber) {
         payout += effectiveAmount * 9;
+        isWin = true;
       }
 
+      // Save win/lose status and payout
+      bet.isWin = isWin;
+      bet.payout = payout;
+      await bet.save();
+
+      // Update user wallet once
       if (payout > 0 && !settledUsers.has(bet.email)) {
         await User.updateOne({ email: bet.email }, { $inc: { wallet: payout } });
         settledUsers.add(bet.email);
       }
     }
 
-    // ✅ Save result to `Result` collection
+    // Save to result collection
     await new Result({
       roundId,
       number: resultNumber,
@@ -65,7 +77,7 @@ async function generateResult(roundId) {
       timestamp: round.timestamp
     }).save();
 
-    console.log(`🎯 Result for Round ${roundId}: Number ${resultNumber}, Color ${resultColor}`);
+    console.log(`✅ Round ${roundId} - Result: ${resultNumber} (${resultColor})`);
   } catch (err) {
     console.error('❌ Error generating result:', err.message);
   }
