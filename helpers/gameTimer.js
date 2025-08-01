@@ -1,24 +1,18 @@
-let intervalId = null;
+const Round = require('../models/Round');
+const generateResult = require('./generateResult');
+const { startGameTimer } = require('../helpers/gameTimer');
 
-const GameTimer = {
-  start(callback, interval = 30000) {
-    if (intervalId) {
-      console.log('🛑 Timer already running.');
-      return;
-    }
+let roundInterval;
 
-    console.log(`⏳ Timer initialized with interval: ${interval}ms`);
-    intervalId = setInterval(callback, interval);
-    callback(); // Run once immediately
-  },
-
-  stop() {
-    if (intervalId) {
-      clearInterval(intervalId);
-      intervalId = null;
-      console.log('🛑 Timer stopped');
-    }
-  },
+const startGameLoop = () => {
+  startGameTimer();
+  roundInterval = setInterval(async () => {
+    const newRound = new Round({
+      timestamp: new Date()
+    });
+    await newRound.save();
+    console.log(`New round started: ${newRound._id}`);
+  }, 30000); // Every 30 seconds
 };
 
-module.exports = GameTimer;
+module.exports = { startGameLoop };
