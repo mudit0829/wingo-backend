@@ -1,7 +1,4 @@
-// generateResult.js
-
-const Bet = require('../models/bet'); // <-- case-sensitive fix
-const Round = require('../models/round');
+const Bet = require('../models/bet');
 const Result = require('../models/result');
 
 function getRandomInt(max) {
@@ -23,11 +20,19 @@ async function generateResult(activeRound) {
     }
 
     const roundId = activeRound.roundId;
+
+    // 🛑 Check if result already exists (MongoDB will throw duplicate error otherwise)
+    const existing = await Result.findOne({ roundId });
+    if (existing) {
+      console.warn(`⚠️ Result already exists for ${roundId}, skipping.`);
+      return null;
+    }
+
     const resultNumber = getRandomInt(10);
     const resultColor = calculateColor(resultNumber);
 
     const result = new Result({
-      roundId: roundId,
+      roundId,
       number: resultNumber,
       color: resultColor,
       timestamp: new Date()
@@ -41,6 +46,7 @@ async function generateResult(activeRound) {
     return { resultNumber, resultColor };
   } catch (error) {
     console.error('❌ Error generating result:', error);
+    return null;
   }
 }
 
@@ -56,7 +62,6 @@ async function processBets(roundId, resultNumber, resultColor) {
     let winAmount = 0;
     const feePercent = 0.02;
 
-    // Color bet evaluation
     if (bet.colorBet) {
       const actualColorBet = bet.color;
       const effectiveAmount = bet.colorBet * (1 - feePercent);
@@ -75,7 +80,6 @@ async function processBets(roundId, resultNumber, resultColor) {
       }
     }
 
-    // Number bet evaluation
     if (bet.numberBet !== null && bet.numberBet !== undefined) {
       const effectiveAmount = bet.numberBet * (1 - feePercent);
       if (resultNumber === bet.numberBetValue) {
