@@ -2,33 +2,36 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const { startGameLoop } = require('./utils/gameLoop');
+const cron = require('node-cron');
+const gameLoop = require('./utils/gameLoop');
+const connectDB = require('./config/db');
 
 dotenv.config();
-const app = express();
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 
+connectDB();
+
 // Routes
 app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/bets', require('./routes/betRoutes'));
 app.use('/api/rounds', require('./routes/roundRoutes'));
-app.use('/api/wallet', require('./routes/walletRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/cron', require('./routes/cronRoutes'));
+app.use('/api/reset', require('./routes/resetRoute'));
+app.use('/api/wallet', require('./routes/walletRoutes'));
+app.use('/api/game', require('./routes/gameRoutes'));
 app.use('/api/result', require('./routes/resultRoutes'));
 
-// DB connect
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log('MongoDB connected');
-  startGameLoop();
-}).catch((err) => {
-  console.error('MongoDB connection error:', err);
+// Schedule game loop to run every 30 seconds
+cron.schedule('*/30 * * * * *', () => {
+  console.log('Running game loop at', new Date().toLocaleTimeString());
+  gameLoop();
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
