@@ -1,25 +1,15 @@
 const express = require('express');
-const { startTimer, generateResult } = require('../utils/gameLoop');
 const router = express.Router();
+const { startGameLoop } = require('../gameLoop');
 
-router.get('/start-timer', async (req, res) => {
+// Manually trigger a new round (for admin button or debugging)
+router.get('/run', async (req, res) => {
   try {
-    console.log("🔁 Timer start request received");
-    startTimer(); // begins repeating 30s loop
-    res.json({ msg: 'Timer started' });
+    await startGameLoop();
+    res.status(200).json({ message: '✅ Game round started successfully' });
   } catch (error) {
-    console.error("❌ Failed to start timer:", error);
-    res.status(500).json({ error: 'Failed to start timer' });
-  }
-});
-
-router.post('/generate-result', async (req, res) => {
-  try {
-    const round = await generateResult(req.body.roundId);
-    res.json({ msg: 'Result generated', round });
-  } catch (error) {
-    console.error("❌ Error generating result:", error);
-    res.status(500).json({ error: 'Failed to generate result' });
+    console.error('❌ Error triggering game loop:', error.message);
+    res.status(500).json({ error: 'Failed to start game round' });
   }
 });
 
