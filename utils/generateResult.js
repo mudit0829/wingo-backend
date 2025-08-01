@@ -16,15 +16,15 @@ async function generateResult(activeRound) {
   try {
     if (!activeRound || !activeRound.roundId) {
       console.warn('⚠️ Cannot generate result: Invalid active round.');
-      return;
+      return null;
     }
 
     const roundId = activeRound.roundId;
 
-    // 🛑 Check if result already exists (MongoDB will throw duplicate error otherwise)
+    // 🔐 Prevent duplicate result generation
     const existing = await Result.findOne({ roundId });
     if (existing) {
-      console.warn(`⚠️ Result already exists for ${roundId}, skipping.`);
+      console.warn(`⚠️ Result already exists for round ${roundId}, skipping.`);
       return null;
     }
 
@@ -41,55 +41,10 @@ async function generateResult(activeRound) {
     await result.save();
     console.log(`🎯 Result for round ${roundId}: ${resultNumber} ${resultColor}`);
 
-    await processBets(roundId, resultNumber, resultColor);
-
     return { resultNumber, resultColor };
   } catch (error) {
     console.error('❌ Error generating result:', error);
     return null;
-  }
-}
-
-async function processBets(roundId, resultNumber, resultColor) {
-  const bets = await Bet.find({ roundId });
-
-  for (const bet of bets) {
-    if (!bet.colorBet && !bet.numberBet) {
-      console.warn(`⚠️ Skipping invalid bet: ${bet._id}`);
-      continue;
-    }
-
-    let winAmount = 0;
-    const feePercent = 0.02;
-
-    if (bet.colorBet) {
-      const actualColorBet = bet.color;
-      const effectiveAmount = bet.colorBet * (1 - feePercent);
-
-      if (actualColorBet === 'Violet' && (resultNumber === 0 || resultNumber === 5)) {
-        winAmount += effectiveAmount * 4.5;
-      } else if (actualColorBet === 'Red' && [2, 4, 6, 8].includes(resultNumber)) {
-        winAmount += effectiveAmount * 2;
-      } else if (actualColorBet === 'Green' && [1, 3, 7, 9].includes(resultNumber)) {
-        winAmount += effectiveAmount * 2;
-      } else if (
-        (actualColorBet === 'Green' && resultNumber === 5) ||
-        (actualColorBet === 'Red' && resultNumber === 0)
-      ) {
-        winAmount += effectiveAmount * 1.5;
-      }
-    }
-
-    if (bet.numberBet !== null && bet.numberBet !== undefined) {
-      const effectiveAmount = bet.numberBet * (1 - feePercent);
-      if (resultNumber === bet.numberBetValue) {
-        winAmount += effectiveAmount * 9;
-      }
-    }
-
-    if (winAmount > 0) {
-      console.log(`💰 User ${bet.username} won Rs.${Math.round(winAmount)} in round ${roundId}`);
-    }
   }
 }
 
