@@ -27,13 +27,19 @@ async function endCurrentRound() {
   try {
     if (!currentRound) return;
 
-    const result = generateResult(); // { color: 'Red', number: 1 }
-    currentRound.resultColor = result.color;
-    currentRound.resultNumber = result.number;
+    const result = await generateResult(currentRound); // ✅ FIXED
+    if (!result) {
+      console.warn('⚠️ No result generated.');
+      currentRound = null;
+      return;
+    }
+
+    currentRound.resultColor = result.resultColor; // ✅ Updated property names
+    currentRound.resultNumber = result.resultNumber;
     currentRound.timestamp = new Date();
     await currentRound.save();
 
-    console.log(`🎯 Result for round ${currentRound.roundId}: ${result.color} ${result.number}`);
+    console.log(`🎯 Result for round ${currentRound.roundId}: ${result.resultNumber} ${result.resultColor}`);
 
     const bets = await Bet.find({ roundId: currentRound.roundId });
 
@@ -46,10 +52,10 @@ async function endCurrentRound() {
       const effectiveAmount = betAmount * 0.98;
 
       // Color bet win logic
-      if (bet.color && result.color === bet.color) {
+      if (bet.color && result.resultColor === bet.color) {
         if (bet.color === 'Violet') {
           totalWin += effectiveAmount * 4.5;
-        } else if (result.number === 0 || result.number === 5) {
+        } else if (result.resultNumber === 0 || result.resultNumber === 5) {
           totalWin += effectiveAmount * 1.5;
         } else {
           totalWin += effectiveAmount * 2;
@@ -57,7 +63,7 @@ async function endCurrentRound() {
       }
 
       // Number bet win logic
-      if (bet.number !== null && bet.number === result.number) {
+      if (bet.number !== null && bet.number === result.resultNumber) {
         totalWin += effectiveAmount * 9;
       }
 
