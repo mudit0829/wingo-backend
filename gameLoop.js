@@ -4,14 +4,14 @@ const Bet = require('./models/bet');
 const User = require('./models/user');
 
 let currentRound = null;
-let isRunning = false; // 🔒 Prevent overlapping loop cycles
+let isRunning = false;
 
 async function startNewRound() {
   try {
     const now = new Date();
     const roundId = `R-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
 
-    // Check if round with same ID already exists (race condition guard)
+    // Prevent duplicate round
     const existing = await Round.findOne({ roundId });
     if (existing) {
       console.warn(`⚠️ Round ${roundId} already exists, skipping.`);
@@ -89,15 +89,14 @@ async function endCurrentRound() {
 }
 
 function startGameLoop() {
-  if (isRunning) return; // 🔒 Avoid starting multiple loops
+  if (isRunning) return;
   isRunning = true;
 
   startNewRound();
-
   setInterval(async () => {
     await endCurrentRound();
     await startNewRound();
-  }, 30000); // 30 seconds
+  }, 30000);
 }
 
 module.exports = { startGameLoop };
