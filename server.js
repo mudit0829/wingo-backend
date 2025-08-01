@@ -49,13 +49,12 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => {
   console.log('✅ Connected to MongoDB');
 
-  // Start server
   app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
 
-    // Start the game loop after server is up
-    const gameLoop = require('./gameLoop');
-    gameLoop(); // ✅ Start WinGo game loop
+    // ✅ Correct import of game loop
+    const { startGameLoop } = require('./gameLoop');
+    startGameLoop(); // ✅ Start WinGo game loop
   });
 
 }).catch((err) => {
