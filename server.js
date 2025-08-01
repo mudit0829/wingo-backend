@@ -21,6 +21,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/rounds', roundRoutes);
 
+// Start the game loop
+const startGameLoop = require('./gameLoop');
+startGameLoop(); // Starts the 30-second round cycle
+
+// Connect to MongoDB and start server
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('MongoDB Connected');
