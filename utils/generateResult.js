@@ -1,16 +1,18 @@
-const Round = require('../models/round');
-const processBets = require('./processBets');
+// utils/generateResult.js
 
-const generateResult = async () => {
-  const pendingRound = await Round.findOne({ result: null }).sort({ createdAt: 1 });
+function generateResult() {
+  const number = Math.floor(Math.random() * 10);
 
-  if (!pendingRound) return;
+  let color = '';
+  if (number === 0 || number === 5) {
+    color = 'Violet';
+  } else if ([1, 3, 7, 9].includes(number)) {
+    color = 'Green';
+  } else {
+    color = 'Red';
+  }
 
-  const result = Math.floor(Math.random() * 10);
-  pendingRound.result = result;
-  await pendingRound.save();
-
-  await processBets(pendingRound.roundId, result);
-};
+  return { number, color };
+}
 
 module.exports = generateResult;
