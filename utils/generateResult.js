@@ -1,8 +1,8 @@
 // generateResult.js
 
-const Bet = require('./models/Bet');
-const Round = require('./models/Round');
-const Result = require('./models/Result');
+const Bet = require('./models/bet');
+const Round = require('./models/round');
+const Result = require('./models/result');
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
