@@ -16,7 +16,10 @@ async function generateResult(roundId) {
     const resultColor = getColor(resultNumber);
 
     const round = await Round.findOne({ roundId });
-    if (!round) return console.error('❌ Round not found:', roundId);
+    if (!round) {
+      console.error('❌ Round not found:', roundId);
+      return;
+    }
 
     round.result = resultNumber;
     round.resultColor = resultColor;
@@ -27,6 +30,12 @@ async function generateResult(roundId) {
     const settledUsers = new Set();
 
     for (const bet of bets) {
+      // If any required field is missing in existing bet (should not happen), skip it
+      if (!bet.amount || !bet.email || typeof bet.roundId === 'undefined') {
+        console.warn('⚠️ Skipping invalid bet:', bet);
+        continue;
+      }
+
       const effectiveAmount = bet.amount * 0.98;
       let payout = 0;
       let isWin = false;
@@ -37,14 +46,14 @@ async function generateResult(roundId) {
           payout += effectiveAmount * 4.5;
           isWin = true;
         } else if (
-          bet.color === 'Green' && [1, 3, 7, 9].includes(resultNumber) ||
-          bet.color === 'Red' && [2, 4, 6, 8].includes(resultNumber)
+          (bet.color === 'Green' && [1, 3, 7, 9].includes(resultNumber)) ||
+          (bet.color === 'Red' && [2, 4, 6, 8].includes(resultNumber))
         ) {
           payout += effectiveAmount * 2;
           isWin = true;
         } else if (
-          bet.color === 'Green' && resultNumber === 5 ||
-          bet.color === 'Red' && resultNumber === 0
+          (bet.color === 'Green' && resultNumber === 5) ||
+          (bet.color === 'Red' && resultNumber === 0)
         ) {
           payout += effectiveAmount * 1.5;
           isWin = true;
@@ -57,29 +66,28 @@ async function generateResult(roundId) {
         isWin = true;
       }
 
-      // Save win/lose status and payout
       bet.isWin = isWin;
       bet.payout = payout;
+
+      // Save only if bet is valid
       await bet.save();
 
-      // Update user wallet once
       if (payout > 0 && !settledUsers.has(bet.email)) {
         await User.updateOne({ email: bet.email }, { $inc: { wallet: payout } });
         settledUsers.add(bet.email);
       }
     }
 
-    // Save to result collection
     await new Result({
       roundId,
       number: resultNumber,
       color: resultColor,
-      timestamp: round.timestamp
+      timestamp: round.timestamp,
     }).save();
 
     console.log(`✅ Round ${roundId} - Result: ${resultNumber} (${resultColor})`);
   } catch (err) {
-    console.error('❌ Error generating result:', err.message);
+    console.error('❌ Error generating result:', err);
   }
 }
 
