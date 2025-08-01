@@ -50,3 +50,6 @@ mongoose.connect(process.env.MONGO_URI, {
 }).catch((error) => {
   console.error('Error connecting to MongoDB:', error.message);
 });
+// Start the game loop (round manager) after server starts
+const gameLoop = require('./gameLoop');
+gameLoop(); // start the loop
