@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const cron = require('node-cron');
-const gameLoop = require('./utils/gameLoop');
+const { startGameLoop } = require('./utils/gameLoop'); // ✅ fixed import
 const connectDB = require('./config/db');
 
 dotenv.config();
@@ -27,11 +27,11 @@ app.use('/api/result', require('./routes/resultRoutes'));
 
 // Schedule game loop to run every 30 seconds
 cron.schedule('*/30 * * * * *', () => {
-  console.log('Running game loop at', new Date().toLocaleTimeString());
-  gameLoop();
+  console.log('⏳ Running game loop at', new Date().toLocaleTimeString());
+  startGameLoop(); // ✅ call the named export
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
