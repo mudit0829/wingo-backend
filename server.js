@@ -2,34 +2,51 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const connectDB = require('./config/db');
-const { startGameLoop } = require('./gameLoop'); // ✅ Import game loop
+const authRoutes = require('./routes/authRoutes');
+const betRoutes = require('./routes/betRoutes');
+const roundRoutes = require('./routes/roundRoutes');
+const userRoutes = require('./routes/userRoutes');
+const cronRoutes = require('./routes/cronRoutes');
+const resetRoute = require('./routes/resetRoute');
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+const PORT = process.env.PORT || 5000;
+
+// ✅ Allow only your frontend
+const allowedOrigins = ['https://mudit0829.github.io'];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
-connectDB();
-
 // Routes
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/bets', require('./routes/betRoutes'));
-app.use('/api/rounds', require('./routes/roundRoutes'));
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/cron', require('./routes/cronRoutes')); // ✅ manually trigger game loop
-app.use('/api/reset', require('./routes/resetRoute'));
-app.use('/api/wallet', require('./routes/walletRoutes'));
-app.use('/api/game', require('./routes/gameRoutes'));
-app.use('/api/result', require('./routes/resultRoutes'));
+app.use('/api/auth', authRoutes);
+app.use('/api/bets', betRoutes);
+app.use('/api/rounds', roundRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/cron', cronRoutes);
+app.use('/api/reset', resetRoute);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log('Connected to MongoDB');
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}).catch((error) => {
+  console.error('Error connecting to MongoDB:', error.message);
 });
-
-// ✅ Start automatic game loop every 30 seconds
-setInterval(() => {
-  startGameLoop();
-}, 30000);
