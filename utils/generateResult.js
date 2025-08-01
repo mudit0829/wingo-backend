@@ -1,99 +1,89 @@
-const Round = require('../models/round');
-const Bet = require('../models/bet');
-const User = require('../models/user');
-const Result = require('../models/result');
+// generateResult.js
 
-function getColor(resultNumber) {
-  if (resultNumber === 0 || resultNumber === 5) return 'Violet';
+const Bet = require('./models/Bet');
+const Round = require('./models/Round');
+const Result = require('./models/Result');
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function calculateColor(resultNumber) {
+  if (resultNumber === 5 || resultNumber === 0) return 'Violet';
   if ([1, 3, 7, 9].includes(resultNumber)) return 'Green';
   if ([2, 4, 6, 8].includes(resultNumber)) return 'Red';
   return null;
 }
 
-async function generateResult(roundId) {
+async function generateResult(activeRound) {
   try {
-    const resultNumber = Math.floor(Math.random() * 10);
-    const resultColor = getColor(resultNumber);
-
-    const round = await Round.findOne({ roundId });
-    if (!round) {
-      console.error('❌ Round not found:', roundId);
+    if (!activeRound || !activeRound.roundId) {
+      console.warn('⚠️ Cannot generate result: Invalid active round.');
       return;
     }
 
-    round.result = resultNumber;
-    round.resultColor = resultColor;
-    await round.save();
+    const roundId = activeRound.roundId;
+    const resultNumber = getRandomInt(10);
+    const resultColor = calculateColor(resultNumber);
 
-    const bets = await Bet.find({ roundId });
+    const result = new Result({
+      roundId: roundId,
+      number: resultNumber,
+      color: resultColor,
+      timestamp: new Date()
+    });
 
-    const settledUsers = new Set();
+    await result.save();
+    console.log(`🎯 Result for round ${roundId}: ${resultNumber} ${resultColor}`);
 
-    for (const bet of bets) {
-      // Skip bet if required fields are missing
-      if (!bet.amount || !bet.email || typeof bet.roundId === 'undefined') {
-        console.warn('⚠️ Skipping invalid bet:', bet._id);
-        continue;
-      }
+    await processBets(roundId, resultNumber, resultColor);
 
-      const effectiveAmount = bet.amount * 0.98;
-      let payout = 0;
-      let isWin = false;
+    return { resultNumber, resultColor };
+  } catch (error) {
+    console.error('❌ Error generating result:', error);
+  }
+}
 
-      // Color logic
-      if (bet.color) {
-        if (bet.color === 'Violet' && [0, 5].includes(resultNumber)) {
-          payout += effectiveAmount * 4.5;
-          isWin = true;
-        } else if (
-          (bet.color === 'Green' && [1, 3, 7, 9].includes(resultNumber)) ||
-          (bet.color === 'Red' && [2, 4, 6, 8].includes(resultNumber))
-        ) {
-          payout += effectiveAmount * 2;
-          isWin = true;
-        } else if (
-          (bet.color === 'Green' && resultNumber === 5) ||
-          (bet.color === 'Red' && resultNumber === 0)
-        ) {
-          payout += effectiveAmount * 1.5;
-          isWin = true;
-        }
-      }
+async function processBets(roundId, resultNumber, resultColor) {
+  const bets = await Bet.find({ roundId });
 
-      // Number logic
-      if (typeof bet.number === 'number' && bet.number === resultNumber) {
-        payout += effectiveAmount * 9;
-        isWin = true;
-      }
+  for (const bet of bets) {
+    if (!bet.colorBet && !bet.numberBet) {
+      console.warn(`⚠️ Skipping invalid bet: ${bet._id}`);
+      continue;
+    }
 
-      bet.isWin = isWin;
-      bet.payout = payout;
+    let winAmount = 0;
+    const feePercent = 0.02;
 
-      // Avoid validation error when saving
-      await Bet.updateOne(
-        { _id: bet._id },
-        { isWin, payout }
-      );
+    if (bet.colorBet) {
+      const actualColorBet = bet.color;
+      const effectiveAmount = bet.colorBet * (1 - feePercent);
 
-      if (payout > 0 && !settledUsers.has(bet.email)) {
-        await User.updateOne(
-          { email: bet.email },
-          { $inc: { wallet: payout } }
-        );
-        settledUsers.add(bet.email);
+      if (actualColorBet === 'Violet' && (resultNumber === 0 || resultNumber === 5)) {
+        winAmount += effectiveAmount * 4.5;
+      } else if (actualColorBet === 'Red' && [2, 4, 6, 8].includes(resultNumber)) {
+        winAmount += effectiveAmount * 2;
+      } else if (actualColorBet === 'Green' && [1, 3, 7, 9].includes(resultNumber)) {
+        winAmount += effectiveAmount * 2;
+      } else if (
+        (actualColorBet === 'Green' && resultNumber === 5) ||
+        (actualColorBet === 'Red' && resultNumber === 0)
+      ) {
+        winAmount += effectiveAmount * 1.5;
       }
     }
 
-    await new Result({
-      roundId,
-      number: resultNumber,
-      color: resultColor,
-      timestamp: round.timestamp,
-    }).save();
+    if (bet.numberBet !== null && bet.numberBet !== undefined) {
+      const effectiveAmount = bet.numberBet * (1 - feePercent);
+      if (resultNumber === bet.numberBetValue) {
+        winAmount += effectiveAmount * 9;
+      }
+    }
 
-    console.log(`✅ Round ${roundId} - Result: ${resultNumber} (${resultColor})`);
-  } catch (err) {
-    console.error('❌ Error generating result:', err.message || err);
+    if (winAmount > 0) {
+      console.log(`💰 User ${bet.username} won Rs.${Math.round(winAmount)} in round ${roundId}`);
+    }
   }
 }
 
