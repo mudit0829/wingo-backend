@@ -1,8 +1,8 @@
 // generateResult.js
 
 const Bet = require('../models/bet'); // <-- case-sensitive fix
-const Round = require('./models/round');
-const Result = require('./models/result');
+const Round = require('../models/round');
+const Result = require('../models/result');
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
