@@ -1,23 +1,11 @@
-const mongoose = require("mongoose");
+// models/result.js
+const mongoose = require('mongoose');
 
 const resultSchema = new mongoose.Schema({
-  roundNumber: {
-    type: Number,
-    required: true,
-  },
-  number: {
-    type: Number,
-    required: true,
-  },
-  color: {
-    type: String,
-    enum: ["RED", "GREEN", "VIOLET"],
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+  roundId: String,
+  number: Number,
+  color: String,
+  timestamp: Date
+}, { timestamps: true });
 
-module.exports = mongoose.model("Result", resultSchema);
+module.exports = mongoose.model('Result', resultSchema);
