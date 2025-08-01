@@ -4,11 +4,19 @@ const Bet = require('./models/bet');
 const User = require('./models/user');
 
 let currentRound = null;
+let isRunning = false; // 🔒 Prevent overlapping loop cycles
 
 async function startNewRound() {
   try {
     const now = new Date();
     const roundId = `R-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+
+    // Check if round with same ID already exists (race condition guard)
+    const existing = await Round.findOne({ roundId });
+    if (existing) {
+      console.warn(`⚠️ Round ${roundId} already exists, skipping.`);
+      return;
+    }
 
     const round = new Round({
       roundId,
@@ -27,14 +35,14 @@ async function endCurrentRound() {
   try {
     if (!currentRound) return;
 
-    const result = await generateResult(currentRound); // ✅ FIXED
+    const result = await generateResult(currentRound);
     if (!result) {
       console.warn('⚠️ No result generated.');
       currentRound = null;
       return;
     }
 
-    currentRound.resultColor = result.resultColor; // ✅ Updated property names
+    currentRound.resultColor = result.resultColor;
     currentRound.resultNumber = result.resultNumber;
     currentRound.timestamp = new Date();
     await currentRound.save();
@@ -51,7 +59,7 @@ async function endCurrentRound() {
       const betAmount = bet.amount;
       const effectiveAmount = betAmount * 0.98;
 
-      // Color bet win logic
+      // Color bet logic
       if (bet.color && result.resultColor === bet.color) {
         if (bet.color === 'Violet') {
           totalWin += effectiveAmount * 4.5;
@@ -62,7 +70,7 @@ async function endCurrentRound() {
         }
       }
 
-      // Number bet win logic
+      // Number bet logic
       if (bet.number !== null && bet.number === result.resultNumber) {
         totalWin += effectiveAmount * 9;
       }
@@ -81,7 +89,11 @@ async function endCurrentRound() {
 }
 
 function startGameLoop() {
+  if (isRunning) return; // 🔒 Avoid starting multiple loops
+  isRunning = true;
+
   startNewRound();
+
   setInterval(async () => {
     await endCurrentRound();
     await startNewRound();
