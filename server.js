@@ -10,7 +10,7 @@ const betRoutes = require('./routes/betRoutes');
 const roundRoutes = require('./routes/roundRoutes');
 const userRoutes = require('./routes/userRoutes');
 const cronRoutes = require('./routes/cronRoutes');
-const resetRoute = require('./routes/resetRoute'); // ✅ Correct Import
+const adminResetRoute = require('./routes/adminResetRoute');  // ✅ Correct Import
 
 // Load environment variables
 dotenv.config();
@@ -40,7 +40,7 @@ app.use('/api/bets', betRoutes);
 app.use('/api/rounds', roundRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cron', cronRoutes);
-app.use('/api/reset', resetRoute); // ✅ Reset Route Middleware
+app.use('/api/reset', adminResetRoute); // ✅ Reset Route Middleware
 
 // Health Check Endpoint
 app.get('/', (req, res) => {
