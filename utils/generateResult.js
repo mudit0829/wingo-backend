@@ -1,4 +1,3 @@
-const Bet = require('../models/bet');
 const Result = require('../models/result');
 
 function getRandomInt(max) {
@@ -12,20 +11,12 @@ function calculateColor(resultNumber) {
   return null;
 }
 
-async function generateResult(activeRound) {
+async function generateResult(roundId) {
   try {
-    if (!activeRound || !activeRound.roundId) {
-      console.warn('⚠️ Cannot generate result: Invalid active round.');
-      return null;
-    }
-
-    const roundId = activeRound.roundId;
-
-    // 🔐 Prevent duplicate result generation
     const existing = await Result.findOne({ roundId });
     if (existing) {
       console.warn(`⚠️ Result already exists for round ${roundId}, skipping.`);
-      return null;
+      return existing;
     }
 
     const resultNumber = getRandomInt(10);
@@ -39,9 +30,9 @@ async function generateResult(activeRound) {
     });
 
     await result.save();
-    console.log(`🎯 Result for round ${roundId}: ${resultNumber} ${resultColor}`);
+    console.log(`🎯 Result Generated: ${roundId} -> ${resultNumber} ${resultColor}`);
 
-    return { resultNumber, resultColor };
+    return result;
   } catch (error) {
     console.error('❌ Error generating result:', error);
     return null;
