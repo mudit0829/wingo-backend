@@ -4,6 +4,18 @@ const User = require('./models/user');
 const generateResult = require('./utils/generateResult');
 
 let isRunning = false;
+let hasCleanedRounds = false;  // Flag to ensure cleanup runs only once
+
+async function cleanupRounds() {
+  if (hasCleanedRounds) return;
+  try {
+    await Round.deleteMany({});
+    console.log('🗑️ All old rounds cleaned up on server start.');
+    hasCleanedRounds = true;
+  } catch (error) {
+    console.error('❌ Error cleaning rounds:', error);
+  }
+}
 
 async function startNewRound() {
   const now = new Date();
@@ -80,6 +92,9 @@ function startGameLoop() {
   isRunning = true;
 
   console.log('🔁 Starting Game Loop...');
+
+  cleanupRounds();  // 🧹 Clean old rounds at startup (only once)
+
   setInterval(async () => {
     try {
       const newRound = await startNewRound();
@@ -89,7 +104,7 @@ function startGameLoop() {
 
       await endRound(newRound);
 
-      // Wait 5s buffer before next round
+      // Wait 5s buffer before next round (implicit in 30s interval)
     } catch (err) {
       console.error('❌ Game Loop Error:', err);
     }
