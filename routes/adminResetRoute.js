@@ -1,68 +1,22 @@
 const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const path = require('path');
+const router = express.Router();
+const Round = require('../models/round');
 
-// Load routes
-const authRoutes = require('./routes/authRoutes');
-const betRoutes = require('./routes/betRoutes');
-const roundRoutes = require('./routes/roundRoutes');
-const userRoutes = require('./routes/userRoutes');
-const cronRoutes = require('./routes/cronRoutes');
-const resetRoute = require('./routes/resetRoute'); // ✅ Correct Import
-
-// Load environment variables
-dotenv.config();
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-// CORS Policy for Frontend
-const allowedOrigins = ['https://mudit0829.github.io'];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS not allowed from this origin: ' + origin));
-    }
-  },
-  credentials: true
-}));
-
-app.use(express.json());
-
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/bets', betRoutes);
-app.use('/api/rounds', roundRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/cron', cronRoutes);
-app.use('/api/reset', resetRoute); // ✅ Reset Route Middleware
-
-// Health Check Endpoint
-app.get('/', (req, res) => {
-  res.send('✅ WinGo Backend is running');
+// Canary Ping Route to verify route is working
+router.get('/ping', (req, res) => {
+  res.json({ message: 'Ping route working!' });
 });
 
-// MongoDB Connection & Game Loop Start
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log('✅ Connected to MongoDB');
-
-  // Start Server after DB Connection
-  app.listen(PORT, () => {
-    console.log(`🚀 Server is running on port ${PORT}`);
-
-    // Start Game Loop
-    const { startGameLoop } = require('./gameLoop');
-    startGameLoop();
-  });
-
-}).catch((err) => {
-  console.error('❌ MongoDB connection failed:', err.message);
+// Route: GET /api/reset/rounds — TEMPORARY GET METHOD TO DELETE ROUNDS
+router.get('/rounds', async (req, res) => {
+  try {
+    await Round.deleteMany({});
+    res.json({ message: 'All game rounds deleted successfully!' });
+    console.log('🗑️ All rounds deleted via GET API call.');
+  } catch (error) {
+    console.error('❌ Error deleting rounds:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
+
+module.exports = router;
