@@ -10,7 +10,7 @@ const betRoutes = require('./routes/betRoutes');
 const roundRoutes = require('./routes/roundRoutes');
 const userRoutes = require('./routes/userRoutes');
 const cronRoutes = require('./routes/cronRoutes');
-const resetRoute = require('./routes/resetRoute');
+const resetRoute = require('./routes/resetRoute'); // ✅ Correct Import
 
 // Load environment variables
 dotenv.config();
@@ -18,7 +18,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Allow only frontend origin
+// CORS Policy for Frontend
 const allowedOrigins = ['https://mudit0829.github.io'];
 
 app.use(cors({
@@ -40,9 +40,9 @@ app.use('/api/bets', betRoutes);
 app.use('/api/rounds', roundRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cron', cronRoutes);
-app.use('/api/reset', resetRoute);
+app.use('/api/reset', resetRoute); // ✅ Reset Route Middleware
 
-// Health check endpoint
+// Health Check Endpoint
 app.get('/', (req, res) => {
   res.send('✅ WinGo Backend is running');
 });
@@ -54,11 +54,11 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => {
   console.log('✅ Connected to MongoDB');
 
-  // Start Server
+  // Start Server after DB Connection
   app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
 
-    // Import and Start Game Loop
+    // Start Game Loop
     const { startGameLoop } = require('./gameLoop');
     startGameLoop();
   });
