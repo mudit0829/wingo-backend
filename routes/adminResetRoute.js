@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Round = require('../models/round');
 
-// Canary Ping Route to verify route is working
+// Canary Ping Route
 router.get('/ping', (req, res) => {
   res.json({ message: 'Ping route working!' });
 });
 
-// Route: GET /api/reset/rounds — TEMPORARY GET METHOD TO DELETE ROUNDS
+// Delete All Rounds API
 router.get('/rounds', async (req, res) => {
   try {
     await Round.deleteMany({});
