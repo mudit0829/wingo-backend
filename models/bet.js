@@ -28,6 +28,10 @@ const betSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  win: {
+    type: Boolean,
+    default: null  // ✅ Added win field for Win/Lose logic
+  },
   timestamp: {
     type: Date,
     default: Date.now
