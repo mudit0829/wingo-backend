@@ -53,23 +53,26 @@ async function endRound(round) {
     const user = await User.findOne({ email: bet.email });
     if (!user) continue;
 
-    const effectiveAmount = bet.amount * 0.98;
+    const effectiveAmount = bet.amount * 0.98; // 2% Service Fee
     let winAmount = 0;
 
-    if (bet.colorBet && bet.colorBet === result.color) {
-      if (bet.colorBet === 'Violet') {
+    // Color Bet Winning Logic
+    if (bet.colorBet) {
+      if (bet.colorBet === 'Violet' && (result.number === 0 || result.number === 5)) {
         winAmount += effectiveAmount * 4.5;
-      } else if (result.number === 0 || result.number === 5) {
-        winAmount += effectiveAmount * 1.5;
-      } else {
+      } else if (bet.colorBet === 'Red' && [1, 3, 7, 9].includes(result.number)) {
+        winAmount += effectiveAmount * 2;
+      } else if (bet.colorBet === 'Green' && [0, 2, 4, 6, 8].includes(result.number)) {
         winAmount += effectiveAmount * 2;
       }
     }
 
+    // Number Bet Winning Logic
     if (bet.numberBet != null && bet.numberBet === result.number) {
       winAmount += effectiveAmount * 9;
     }
 
+    // Update User Wallet & Bet Status
     if (winAmount > 0) {
       user.wallet += Math.floor(winAmount);
       await user.save();
@@ -88,18 +91,17 @@ function startGameLoop() {
   isRunning = true;
 
   console.log('🔁 Starting Game Loop...');
-
   cleanupRounds();
 
   setInterval(async () => {
     try {
       const newRound = await startNewRound();
-      await new Promise(resolve => setTimeout(resolve, 25000));
+      await new Promise(resolve => setTimeout(resolve, 25000)); // 25s betting phase
       await endRound(newRound);
     } catch (err) {
       console.error('❌ Game Loop Error:', err);
     }
-  }, 30000);
+  }, 30000); // Total loop every 30s
 }
 
 module.exports = { startGameLoop };
