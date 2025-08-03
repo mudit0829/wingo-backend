@@ -3,7 +3,7 @@ const router = express.Router();
 const Bet = require('../models/bet');
 const User = require('../models/user');
 
-// Place Bet - POST /api/bets
+// ✅ Place Bet - POST /api/bets
 router.post('/', async (req, res) => {
   try {
     const { email, roundId, amount, colorBet, numberBet } = req.body;
@@ -51,10 +51,11 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get User Bets - GET /api/bets/user/:email
+// ✅ Get User Bets - Latest First
 router.get('/user/:email', async (req, res) => {
   try {
-    const bets = await Bet.find({ email: req.params.email }).sort({ timestamp: -1 });
+    const bets = await Bet.find({ email: req.params.email })
+                          .sort({ timestamp: -1 }); // Sort DESCENDING (Latest First)
     res.json(bets);
   } catch (err) {
     console.error('Error fetching bets:', err);
