@@ -2,15 +2,41 @@ const express = require('express');
 const router = express.Router();
 const Bet = require('../models/bet');
 const User = require('../models/user');
+// Inside POST /api/bets
+const User = require('../models/user');  // Add this if not present
 
-// Place Bet - POST /api/bets
 router.post('/', async (req, res) => {
   try {
-    const { email, roundId, colorBet, numberBet, amount } = req.body;
+    const { email, roundId, amount, colorBet, numberBet } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (!email || !roundId || !amount || (!colorBet && numberBet === undefined)) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    const netAmount = amount * 0.98; // 2% service fee
+
+    if (user.wallet < amount) {
+      return res.status(400).json({ message: 'Insufficient balance' });
     }
+
+    user.wallet -= amount;  // Deduct amount from wallet
+    await user.save();
+
+    const newBet = new Bet({
+      email,
+      roundId,
+      amount,
+      netAmount,
+      colorBet,
+      numberBet
+    });
+
+    await newBet.save();
+    res.status(201).json(newBet);
+  } catch (err) {
+    console.error('Error placing bet:', err);
+    res.status(500).json({ message: 'Failed to place bet' });
+  }
+});
+
 
     // Fetch User
     const user = await User.findOne({ email });
