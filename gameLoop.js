@@ -1,4 +1,3 @@
-// gameLoop.js
 const Round = require('./models/round');
 const Bet = require('./models/bet');
 const User = require('./models/user');
@@ -56,7 +55,7 @@ async function endRound(round) {
     const user = await User.findOne({ email: bet.email });
     if (!user) continue;
 
-    const effectiveAmount = bet.amount * 0.98; // 2% Service Fee
+    const effectiveAmount = bet.amount * 0.98;
     let winAmount = 0;
 
     // Color Bet Logic
@@ -77,7 +76,6 @@ async function endRound(round) {
 
     if (winAmount > 0) {
       user.wallet += Math.floor(winAmount);
-      await user.save();
       bet.win = true;
       totalWinners += 1;
       totalDistributed += Math.floor(winAmount);
@@ -86,6 +84,7 @@ async function endRound(round) {
     }
 
     await bet.save();
+    await user.save();
   }
 
   console.log(`🏆 Round Summary: ${round.roundId} | Total Bets: ${bets.length} | Winners: ${totalWinners} | Distributed: ₹${totalDistributed}`);
