@@ -41,13 +41,16 @@ async function endRound(round) {
   round.endTime = new Date();
   await round.save();
 
-  console.log(`🎯 Round Result Updated: ${round.roundId} -> ${result.number} ${result.color}`);
+  console.log(`🎯 Round Result: ${round.roundId} -> Number: ${result.number}, Color: ${result.color}`);
 
   const bets = await Bet.find({ roundId: round.roundId });
   if (!bets.length) {
     console.log(`🛑 No bets placed for round ${round.roundId}`);
     return;
   }
+
+  let totalWinners = 0;
+  let totalDistributed = 0;
 
   for (const bet of bets) {
     const user = await User.findOne({ email: bet.email });
@@ -56,7 +59,7 @@ async function endRound(round) {
     const effectiveAmount = bet.amount * 0.98; // 2% Service Fee
     let winAmount = 0;
 
-    // Color Bet Winning Logic
+    // Color Bet Logic
     if (bet.colorBet) {
       if (bet.colorBet === 'Violet' && (result.number === 0 || result.number === 5)) {
         winAmount += effectiveAmount * 4.5;
@@ -67,23 +70,25 @@ async function endRound(round) {
       }
     }
 
-    // Number Bet Winning Logic
+    // Number Bet Logic
     if (bet.numberBet != null && bet.numberBet === result.number) {
       winAmount += effectiveAmount * 9;
     }
 
-    // Update User Wallet & Bet Status
     if (winAmount > 0) {
       user.wallet += Math.floor(winAmount);
       await user.save();
-      console.log(`💰 User ${user.email} won ₹${Math.floor(winAmount)} in round ${round.roundId}`);
       bet.win = true;
+      totalWinners += 1;
+      totalDistributed += Math.floor(winAmount);
     } else {
       bet.win = false;
     }
 
     await bet.save();
   }
+
+  console.log(`🏆 Round Summary: ${round.roundId} | Total Bets: ${bets.length} | Winners: ${totalWinners} | Distributed: ₹${totalDistributed}`);
 }
 
 function startGameLoop() {
@@ -96,12 +101,12 @@ function startGameLoop() {
   setInterval(async () => {
     try {
       const newRound = await startNewRound();
-      await new Promise(resolve => setTimeout(resolve, 25000)); // 25s betting phase
+      await new Promise(resolve => setTimeout(resolve, 25000)); // 25s betting time
       await endRound(newRound);
     } catch (err) {
       console.error('❌ Game Loop Error:', err);
     }
-  }, 30000); // Total loop every 30s
+  }, 30000); // 30s total loop
 }
 
 module.exports = { startGameLoop };
