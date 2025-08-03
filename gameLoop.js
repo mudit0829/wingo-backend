@@ -1,10 +1,11 @@
+// gameLoop.js
 const Round = require('./models/round');
 const Bet = require('./models/bet');
 const User = require('./models/user');
 const generateResult = require('./utils/generateResult');
 
 let isRunning = false;
-let hasCleanedRounds = false;  // Flag to ensure cleanup runs only once
+let hasCleanedRounds = false;
 
 async function cleanupRounds() {
   if (hasCleanedRounds) return;
@@ -23,7 +24,7 @@ async function startNewRound() {
 
   const newRound = new Round({
     roundId,
-    timestamp: now
+    startTime: now
   });
 
   await newRound.save();
@@ -35,15 +36,13 @@ async function endRound(round) {
   const result = await generateResult(round.roundId);
   if (!result) return;
 
-  // Update Round with Result
   round.resultNumber = result.number;
   round.resultColor = result.color;
-  round.timestamp = new Date();
+  round.endTime = new Date();
   await round.save();
 
   console.log(`🎯 Round Result Updated: ${round.roundId} -> ${result.number} ${result.color}`);
 
-  // Process Bets
   const bets = await Bet.find({ roundId: round.roundId });
   if (!bets.length) {
     console.log(`🛑 No bets placed for round ${round.roundId}`);
@@ -54,10 +53,9 @@ async function endRound(round) {
     const user = await User.findOne({ email: bet.email });
     if (!user) continue;
 
-    const effectiveAmount = bet.amount * 0.98; // 2% service fee
+    const effectiveAmount = bet.amount * 0.98;
     let winAmount = 0;
 
-    // Color Bet
     if (bet.colorBet && bet.colorBet === result.color) {
       if (bet.colorBet === 'Violet') {
         winAmount += effectiveAmount * 4.5;
@@ -68,12 +66,10 @@ async function endRound(round) {
       }
     }
 
-    // Number Bet
-    if (bet.numberBet !== null && bet.numberBet === result.number) {
+    if (bet.numberBet != null && bet.numberBet === result.number) {
       winAmount += effectiveAmount * 9;
     }
 
-    // Update User Wallet if Won
     if (winAmount > 0) {
       user.wallet += Math.floor(winAmount);
       await user.save();
@@ -93,22 +89,17 @@ function startGameLoop() {
 
   console.log('🔁 Starting Game Loop...');
 
-  cleanupRounds();  // 🧹 Clean old rounds at startup (only once)
+  cleanupRounds();
 
   setInterval(async () => {
     try {
       const newRound = await startNewRound();
-
-      // Wait 25s for bets
       await new Promise(resolve => setTimeout(resolve, 25000));
-
       await endRound(newRound);
-
-      // Wait 5s buffer before next round (implicit in 30s interval)
     } catch (err) {
       console.error('❌ Game Loop Error:', err);
     }
-  }, 30000); // Total loop cycle 30s
+  }, 30000);
 }
 
 module.exports = { startGameLoop };
