@@ -31,24 +31,16 @@ async function startNewRound() {
   return newRound;
 }
 
-function getColorByNumber(number) {
-  if ([1, 3, 7, 9].includes(number)) return 'Red';
-  if ([0, 2, 4, 6, 8].includes(number)) return 'Green';
-  return 'Violet';
-}
-
 async function endRound(round) {
   const result = await generateResult(round.roundId);
   if (!result) return;
 
-  const resultColor = getColorByNumber(result.number);
-
   round.resultNumber = result.number;
-  round.resultColor = resultColor;
+  round.resultColor = result.color;
   round.endTime = new Date();
   await round.save();
 
-  console.log(`🎯 Round Result: ${round.roundId} -> Number: ${result.number}, Color: ${resultColor}`);
+  console.log(`🎯 Round Result: ${round.roundId} -> Number: ${result.number}, Color: ${result.color}`);
 
   const bets = await Bet.find({ roundId: round.roundId });
   if (!bets.length) {
@@ -56,22 +48,23 @@ async function endRound(round) {
     return;
   }
 
-  let totalWinners = 0;
+  let winners = 0;
   let totalDistributed = 0;
 
   for (const bet of bets) {
-    const user = await User.findOne({ email: bet.email });
-    if (!user) continue;
-
-    const effectiveAmount = bet.amount * 0.98;
     let winAmount = 0;
+    const effectiveAmount = bet.amount * 0.98;
 
     // Color Bet Logic
     if (bet.colorBet) {
-      if (bet.colorBet === 'Violet' && (result.number === 0 || result.number === 5)) {
+      if (result.color === 'Violet' && bet.colorBet === 'Violet') {
         winAmount += effectiveAmount * 4.5;
-      } else if (bet.colorBet === resultColor && resultColor !== 'Violet') {
-        winAmount += effectiveAmount * 2;
+      } else if (result.color === bet.colorBet) {
+        if (result.number === 0 || result.number === 5) {
+          winAmount += effectiveAmount * 1.5;
+        } else {
+          winAmount += effectiveAmount * 2;
+        }
       }
     }
 
@@ -81,10 +74,13 @@ async function endRound(round) {
     }
 
     if (winAmount > 0) {
-      user.wallet += Math.floor(winAmount);
-      await user.save();
+      const user = await User.findOne({ email: bet.email });
+      if (user) {
+        user.wallet += Math.floor(winAmount);
+        await user.save();
+      }
       bet.win = true;
-      totalWinners += 1;
+      winners += 1;
       totalDistributed += Math.floor(winAmount);
     } else {
       bet.win = false;
@@ -93,7 +89,7 @@ async function endRound(round) {
     await bet.save();
   }
 
-  console.log(`🏆 Round Summary: ${round.roundId} | Total Bets: ${bets.length} | Winners: ${totalWinners} | Distributed: ₹${totalDistributed}`);
+  console.log(`🏆 Round Summary: ${round.roundId} | Total Bets: ${bets.length} | Winners: ${winners} | Distributed: ₹${totalDistributed}`);
 }
 
 function startGameLoop() {
@@ -106,7 +102,7 @@ function startGameLoop() {
   setInterval(async () => {
     try {
       const newRound = await startNewRound();
-      await new Promise(resolve => setTimeout(resolve, 25000)); // 25s for bets
+      await new Promise(resolve => setTimeout(resolve, 25000)); // 25s for betting
       await endRound(newRound);
     } catch (err) {
       console.error('❌ Game Loop Error:', err);
