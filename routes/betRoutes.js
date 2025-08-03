@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Bet = require('../models/bet');
-const Round = require('../models/round');
 const User = require('../models/user');
 
 // POST /api/bets
@@ -13,23 +12,20 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Fetch user by email
     const user = await User.findOne({ email });
-
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Check for sufficient wallet balance
-    if (user.balance < amount) {
+    // Check wallet (deducting from 'wallet' field)
+    if (user.wallet < amount) {
       return res.status(400).json({ message: 'Insufficient wallet balance' });
     }
 
-    // Deduct wallet balance
-    user.balance -= amount;
+    user.wallet -= amount;
     await user.save();
 
-    // Apply service fee (2%)
+    // Apply 2% Service Fee
     const netAmount = Math.floor(amount * 0.98);
 
     const newBet = new Bet({
@@ -47,7 +43,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({
       message: 'Bet placed successfully',
       bet: newBet,
-      newWalletBalance: user.balance
+      newWalletBalance: user.wallet
     });
   } catch (error) {
     console.error('Bet Error:', error);
@@ -58,9 +54,10 @@ router.post('/', async (req, res) => {
 // GET /api/bets/user/:email
 router.get('/user/:email', async (req, res) => {
   try {
-    const bets = await Bet.find({ email: req.params.email });
+    const bets = await Bet.find({ email: req.params.email }).sort({ timestamp: -1 });
     res.json(bets);
   } catch (err) {
+    console.error('Fetch Bets Error:', err);
     res.status(500).json({ message: 'Error fetching bets' });
   }
 });
