@@ -9,13 +9,14 @@ router.get('/wallet/:email', async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json({ balance: user.balance });
+    res.json({ wallet: user.wallet });
   } catch (err) {
+    console.error('Fetch Wallet Error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ✅ Update user wallet
+// ✅ Update user wallet balance by amount (+/-)
 router.post('/wallet/update', async (req, res) => {
   try {
     const { email, amount } = req.body;
@@ -25,11 +26,12 @@ router.post('/wallet/update', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.balance += amount;
+    user.wallet += amount;  // Can be positive (add) or negative (deduct)
     await user.save();
 
-    res.json({ message: 'Wallet updated successfully', balance: user.balance });
+    res.json({ message: 'Wallet updated successfully', wallet: user.wallet });
   } catch (err) {
+    console.error('Update Wallet Error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
