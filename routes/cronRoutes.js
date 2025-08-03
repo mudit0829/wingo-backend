@@ -5,22 +5,28 @@ const Bet = require('../models/bet');
 const User = require('../models/user');
 const generateResult = require('../utils/generateResult');
 
-// Manually trigger a result generation and save it to DB
+// Manual Result Generation & Processing
 router.get('/run', async (req, res) => {
   try {
     const latestRound = await Round.findOne().sort({ startTime: -1 });
     if (!latestRound) return res.status(404).json({ message: 'No active round found' });
 
+    // Skip if result already generated
+    if (latestRound.resultNumber != null && latestRound.resultColor != null) {
+      return res.status(200).json({ message: 'Result already generated for this round.' });
+    }
+
     // Generate Result
     const result = await generateResult(latestRound.roundId);
 
-    // Save result in Round
+    // Save Result in Round DB
     latestRound.resultNumber = result.number;
     latestRound.resultColor = result.color;
     await latestRound.save();
 
     console.log(`🎯 Round Result: ${latestRound.roundId} -> Number: ${result.number}, Color: ${result.color}`);
 
+    // Process Bets
     const bets = await Bet.find({ roundId: latestRound.roundId });
     if (!bets.length) {
       console.log(`🛑 No bets placed for round ${latestRound.roundId}`);
@@ -32,35 +38,35 @@ router.get('/run', async (req, res) => {
 
     for (const bet of bets) {
       let winAmount = 0;
-      const effectiveAmount = bet.amount * 0.98; // Apply 2% service fee
+      const netAmount = bet.amount * 0.98; // Apply 2% service fee
 
       // Color Bet Logic
       if (bet.colorBet) {
         if (result.color === 'Violet' && bet.colorBet === 'Violet') {
-          winAmount += effectiveAmount * 4.5;
+          winAmount += Math.floor(netAmount * 4.5);
         } else if (result.color === bet.colorBet) {
           if (result.number === 0 || result.number === 5) {
-            winAmount += effectiveAmount * 1.5;
+            winAmount += Math.floor(netAmount * 1.5);
           } else {
-            winAmount += effectiveAmount * 2;
+            winAmount += Math.floor(netAmount * 2);
           }
         }
       }
 
       // Number Bet Logic
       if (bet.numberBet != null && bet.numberBet === result.number) {
-        winAmount += effectiveAmount * 9;
+        winAmount += Math.floor(netAmount * 9);
       }
 
       if (winAmount > 0) {
         const user = await User.findOne({ email: bet.email });
         if (user) {
-          user.wallet += Math.floor(winAmount);
+          user.wallet += winAmount;
           await user.save();
         }
         bet.win = true;
-        winners += 1;
-        totalDistributed += Math.floor(winAmount);
+        winners++;
+        totalDistributed += winAmount;
       } else {
         bet.win = false;
       }
