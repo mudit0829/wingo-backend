@@ -5,7 +5,7 @@ const Bet = require('../models/bet');
 const User = require('../models/user');
 const generateResult = require('../utils/generateResult');
 
-// ✅ Auto Result Generation & Processing
+// ✅ Auto Result Generation (Backend Cron)
 router.get('/run', async (req, res) => {
   try {
     const latestRound = await Round.findOne().sort({ startTime: -1 });
@@ -29,12 +29,12 @@ router.get('/run', async (req, res) => {
   }
 });
 
-// ✅ Manual Result Control API (Admin)
-router.post('/admin/setResult', async (req, res) => {
+// ✅ Manual Result Control API (Admin Panel)
+router.post('/manualResult', async (req, res) => {
   try {
-    const { roundId, resultColor, resultNumber } = req.body;
+    const { roundId, color, number } = req.body;
 
-    if (!roundId || !resultColor || resultNumber === undefined) {
+    if (!roundId || !color || number === undefined) {
       return res.status(400).json({ message: 'Missing fields' });
     }
 
@@ -43,15 +43,13 @@ router.post('/admin/setResult', async (req, res) => {
       return res.status(404).json({ message: 'Round not found' });
     }
 
-    // Update Round Result
-    round.resultColor = resultColor;
-    round.resultNumber = resultNumber;
+    round.resultColor = color;
+    round.resultNumber = number;
     await round.save();
 
-    // Process Bets
     await processBets(round);
 
-    console.log(`📝 Manual Result Set: Round ${roundId} | Color: ${resultColor} | Number: ${resultNumber}`);
+    console.log(`📝 Manual Result Set: Round ${roundId} | Color: ${color} | Number: ${number}`);
 
     res.status(200).json({
       message: '✅ Manual Result set and bets processed successfully',
@@ -59,14 +57,13 @@ router.post('/admin/setResult', async (req, res) => {
       resultColor: round.resultColor,
       resultNumber: round.resultNumber
     });
-
   } catch (error) {
-    console.error('❌ Error in /admin/setResult route:', error);
+    console.error('❌ Error in /manualResult route:', error);
     res.status(500).json({ message: 'Failed to set manual result' });
   }
 });
 
-// 🏆 Common Bet Processing Function
+// 🏆 Bet Processing Logic (Common Function)
 async function processBets(round) {
   const bets = await Bet.find({ roundId: round.roundId });
   if (!bets.length) {
@@ -106,10 +103,12 @@ async function processBets(round) {
         await user.save();
       }
       bet.win = true;
+      bet.resultNumber = round.resultNumber;
       winners++;
       totalDistributed += winAmount;
     } else {
       bet.win = false;
+      bet.resultNumber = round.resultNumber;
     }
 
     await bet.save();
