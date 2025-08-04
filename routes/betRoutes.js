@@ -8,6 +8,11 @@ router.post('/', async (req, res) => {
   try {
     const { email, roundId, amount, colorBet, numberBet } = req.body;
 
+    // Validate Request
+    if (!email || !roundId || !amount) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
     // Fetch User
     const user = await User.findOne({ email });
     if (!user) {
@@ -34,7 +39,7 @@ router.post('/', async (req, res) => {
       netAmount,
       colorBet: colorBet || null,
       numberBet: numberBet !== undefined ? numberBet : null,
-      win: null, // Set to pending initially
+      win: null, // Pending
       timestamp: new Date()
     });
 
@@ -45,18 +50,25 @@ router.post('/', async (req, res) => {
       bet: newBet,
       newWalletBalance: user.wallet
     });
+
   } catch (error) {
     console.error('Error placing bet:', error);
     res.status(500).json({ message: 'Failed to place bet' });
   }
 });
 
-// ✅ Get User Bets - Latest First
+// ✅ Get User Bets - Latest First - GET /api/bets/user/:email
 router.get('/user/:email', async (req, res) => {
   try {
-    const bets = await Bet.find({ email: req.params.email })
-                          .sort({ timestamp: -1 }); // Sort DESCENDING (Latest First)
-    res.json(bets);
+    const email = req.params.email;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const bets = await Bet.find({ email }).sort({ timestamp: -1 });
+
+    // Ensure safe response (empty array if no bets)
+    res.json(bets || []);
   } catch (err) {
     console.error('Error fetching bets:', err);
     res.status(500).json({ message: 'Failed to fetch bets' });
