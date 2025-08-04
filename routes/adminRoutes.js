@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Bet = require('../models/bet');
-const Round = require('../models/round');
-const User = require('../models/user');
 
 // ✅ Profit/Loss Summary API - GET /api/admin/profitLoss
 router.get('/profitLoss', async (req, res) => {
@@ -16,6 +14,8 @@ router.get('/profitLoss', async (req, res) => {
       totalBets += bet.netAmount;
       if (bet.win) {
         let payout = 0;
+
+        // Color Bet Logic
         if (bet.colorBet === 'Red' || bet.colorBet === 'Green') {
           if (bet.resultNumber === 0 || bet.resultNumber === 5) {
             payout = bet.netAmount * 1.5;
@@ -25,9 +25,12 @@ router.get('/profitLoss', async (req, res) => {
         } else if (bet.colorBet === 'Violet') {
           payout = bet.netAmount * 4.5;
         }
-        if (bet.numberBet !== null && bet.numberBet === bet.resultNumber) {
+
+        // Number Bet Logic
+        if (bet.numberBet != null && bet.numberBet === bet.resultNumber) {
           payout += bet.netAmount * 9;
         }
+
         totalPayouts += payout;
       }
     });
@@ -40,97 +43,15 @@ router.get('/profitLoss', async (req, res) => {
   }
 });
 
-// ✅ Start Timer API - POST /api/admin/timer/start
+// ✅ Timer Control APIs (Demo Only)
 router.post('/timer/start', (req, res) => {
   console.log('Timer Started');
   res.json({ message: 'Timer started' });
 });
 
-// ✅ Stop Timer API - POST /api/admin/timer/stop
 router.post('/timer/stop', (req, res) => {
   console.log('Timer Stopped');
   res.json({ message: 'Timer stopped' });
-});
-
-// ✅ Manual Result Control API - POST /api/admin/manualResult
-router.post('/manualResult', async (req, res) => {
-  try {
-    const { roundId, resultColor, resultNumber } = req.body;
-
-    if (!roundId || resultColor == null || resultNumber == null) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-    const round = await Round.findOne({ roundId });
-    if (!round) {
-      return res.status(404).json({ message: 'Round not found' });
-    }
-
-    // Overwrite Result
-    round.resultColor = resultColor;
-    round.resultNumber = resultNumber;
-    await round.save();
-
-    // Process Bets for this round
-    const bets = await Bet.find({ roundId });
-
-    let winners = 0;
-    let totalDistributed = 0;
-
-    for (const bet of bets) {
-      let winAmount = 0;
-      const netAmount = bet.netAmount;
-
-      // Color Bet Logic
-      if (bet.colorBet) {
-        if (resultColor === 'Violet' && bet.colorBet === 'Violet') {
-          winAmount += Math.floor(netAmount * 4.5);
-        } else if (resultColor === bet.colorBet) {
-          if (resultNumber === 0 || resultNumber === 5) {
-            winAmount += Math.floor(netAmount * 1.5);
-          } else {
-            winAmount += Math.floor(netAmount * 2);
-          }
-        }
-      }
-
-      // Number Bet Logic
-      if (bet.numberBet != null && bet.numberBet === resultNumber) {
-        winAmount += Math.floor(netAmount * 9);
-      }
-
-      if (winAmount > 0) {
-        const user = await User.findOne({ email: bet.email });
-        if (user) {
-          user.wallet += winAmount;
-          await user.save();
-        }
-        bet.win = true;
-        winners++;
-        totalDistributed += winAmount;
-      } else {
-        bet.win = false;
-      }
-
-      // Save result number in bet for reference
-      bet.resultNumber = resultNumber;
-      await bet.save();
-    }
-
-    res.json({
-      message: '✅ Manual Result Processed Successfully',
-      roundId,
-      resultColor,
-      resultNumber,
-      totalBets: bets.length,
-      winners,
-      totalDistributed
-    });
-
-  } catch (err) {
-    console.error('Manual Result Error:', err);
-    res.status(500).json({ message: 'Failed to process manual result' });
-  }
 });
 
 module.exports = router;
