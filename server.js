@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
@@ -31,6 +30,7 @@ app.use(cors({
 
 app.use(express.json());
 
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/rounds', roundRoutes);
@@ -38,10 +38,12 @@ app.use('/api/users', userRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/reset', adminResetRoute);
 
+// Health Check Route
 app.get('/', (req, res) => {
   res.send('✅ WinGo Backend is running');
 });
 
+// MongoDB Connection & Game Loop Start
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
