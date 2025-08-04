@@ -9,6 +9,7 @@ const roundRoutes = require('./routes/roundRoutes');
 const userRoutes = require('./routes/userRoutes');
 const cronRoutes = require('./routes/cronRoutes');
 const adminResetRoute = require('./routes/adminResetRoute');
+const adminRoutes = require('./routes/adminRoutes');
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/api/rounds', roundRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/reset', adminResetRoute);
+app.use('/api/admin', adminRoutes);
 
 // Health Check Route
 app.get('/', (req, res) => {
