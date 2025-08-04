@@ -16,9 +16,18 @@ router.get('/profitLoss', async (req, res) => {
       totalBets += bet.netAmount;
       if (bet.win) {
         let payout = 0;
-        if (bet.colorBet === 'Red' || bet.colorBet === 'Green') payout = bet.netAmount * 2;
-        else if (bet.colorBet === 'Violet') payout = bet.netAmount * 4.5;
-        if (bet.numberBet != null) payout += bet.netAmount * 9;
+        if (bet.colorBet === 'Red' || bet.colorBet === 'Green') {
+          if (bet.resultNumber === 0 || bet.resultNumber === 5) {
+            payout = bet.netAmount * 1.5;
+          } else {
+            payout = bet.netAmount * 2;
+          }
+        } else if (bet.colorBet === 'Violet') {
+          payout = bet.netAmount * 4.5;
+        }
+        if (bet.numberBet !== null && bet.numberBet === bet.resultNumber) {
+          payout += bet.netAmount * 9;
+        }
         totalPayouts += payout;
       }
     });
@@ -31,34 +40,40 @@ router.get('/profitLoss', async (req, res) => {
   }
 });
 
-// ✅ Timer Start API - POST /api/admin/timer/start
+// ✅ Start Timer API - POST /api/admin/timer/start
 router.post('/timer/start', (req, res) => {
-  console.log('⏱️ Timer Started (Manual Trigger)');
-  res.json({ message: 'Timer started manually' });
+  console.log('Timer Started');
+  res.json({ message: 'Timer started' });
 });
 
-// ✅ Timer Stop API - POST /api/admin/timer/stop
+// ✅ Stop Timer API - POST /api/admin/timer/stop
 router.post('/timer/stop', (req, res) => {
-  console.log('⏹️ Timer Stopped (Manual Trigger)');
-  res.json({ message: 'Timer stopped manually' });
+  console.log('Timer Stopped');
+  res.json({ message: 'Timer stopped' });
 });
 
-// ✅ Manual Result Control - POST /api/admin/manualResult
+// ✅ Manual Result Control API - POST /api/admin/manualResult
 router.post('/manualResult', async (req, res) => {
   try {
-    const { roundId, resultNumber, resultColor } = req.body;
+    const { roundId, resultColor, resultNumber } = req.body;
+
+    if (!roundId || resultColor == null || resultNumber == null) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
 
     const round = await Round.findOne({ roundId });
     if (!round) {
       return res.status(404).json({ message: 'Round not found' });
     }
 
-    round.resultNumber = resultNumber;
+    // Overwrite Result
     round.resultColor = resultColor;
+    round.resultNumber = resultNumber;
     await round.save();
 
-    // Process Bets for this Round
+    // Process Bets for this round
     const bets = await Bet.find({ roundId });
+
     let winners = 0;
     let totalDistributed = 0;
 
@@ -97,13 +112,16 @@ router.post('/manualResult', async (req, res) => {
         bet.win = false;
       }
 
+      // Save result number in bet for reference
+      bet.resultNumber = resultNumber;
       await bet.save();
     }
 
     res.json({
-      message: `✅ Result manually set for Round ${roundId}`,
-      resultNumber,
+      message: '✅ Manual Result Processed Successfully',
+      roundId,
       resultColor,
+      resultNumber,
       totalBets: bets.length,
       winners,
       totalDistributed
@@ -111,7 +129,7 @@ router.post('/manualResult', async (req, res) => {
 
   } catch (err) {
     console.error('Manual Result Error:', err);
-    res.status(500).json({ message: 'Failed to set manual result' });
+    res.status(500).json({ message: 'Failed to process manual result' });
   }
 });
 
