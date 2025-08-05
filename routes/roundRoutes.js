@@ -2,25 +2,25 @@ const express = require('express');
 const router = express.Router();
 const Round = require('../models/round');
 
-// ✅ Get Latest 20 Rounds (For Game History - Frontend)
+// Utility Function to Format Round ID
+function formatRoundId(round) {
+  const date = new Date(round.startTime);
+  const yyyyMMdd = date.toISOString().split('T')[0].replace(/-/g, '');
+  const suffix = String(round.roundId).slice(-5);
+  return `R-${yyyyMMdd}-${suffix}`;
+}
+
+// ✅ Get Latest 20 Rounds (For Game Page History)
 router.get('/', async (req, res) => {
   try {
     const rounds = await Round.find()
                               .sort({ startTime: -1 })
                               .limit(20);
 
-    // Format Round IDs
-    const formattedRounds = rounds.map(round => {
-      let roundId = round.roundId;
-      if (!roundId.startsWith('R-')) {
-        const suffix = String(round.roundId).slice(-5);
-        roundId = `R-${suffix}`;
-      }
-      return {
-        ...round._doc,
-        roundId
-      };
-    });
+    const formattedRounds = rounds.map(round => ({
+      ...round._doc,
+      roundId: formatRoundId(round)
+    }));
 
     res.json(formattedRounds);
 
@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ Get Upcoming Rounds (DB first, Virtual if Empty)
+// ✅ Get Upcoming Rounds (DB first, Generate if Empty)
 router.get('/upcoming', async (req, res) => {
   try {
     const now = new Date();
@@ -44,15 +44,16 @@ router.get('/upcoming', async (req, res) => {
 
     let totalUpcoming = await Round.countDocuments({ startTime: { $gt: now } });
 
-    // If no upcoming rounds in DB → Generate Virtual Rounds
+    // If no upcoming rounds → Generate Virtual Rounds Dynamically
     if (upcomingRounds.length === 0) {
       upcomingRounds = [];
       const startTimestamp = now.getTime();
 
       for (let i = 0; i < pageSize; i++) {
         const futureTime = new Date(startTimestamp + ((page * pageSize + i) * 30000)); // 30s interval
+        const yyyyMMdd = futureTime.toISOString().split('T')[0].replace(/-/g, '');
         const suffix = String(Math.floor(futureTime.getTime() / 1000)).slice(-5);
-        const roundId = `R-${suffix}`;
+        const roundId = `R-${yyyyMMdd}-${suffix}`;
 
         upcomingRounds.push({
           roundId,
@@ -62,20 +63,13 @@ router.get('/upcoming', async (req, res) => {
         });
       }
 
-      totalUpcoming = 1000; // Simulated 1000 rounds
+      totalUpcoming = 1000; // Simulated for pagination
     } else {
-      // Format DB fetched rounds
-      upcomingRounds = upcomingRounds.map(round => {
-        let roundId = round.roundId;
-        if (!roundId.startsWith('R-')) {
-          const suffix = String(round.roundId).slice(-5);
-          roundId = `R-${suffix}`;
-        }
-        return {
-          ...round._doc,
-          roundId
-        };
-      });
+      // Format DB Rounds RoundID
+      upcomingRounds = upcomingRounds.map(round => ({
+        ...round._doc,
+        roundId: formatRoundId(round)
+      }));
     }
 
     res.json({
