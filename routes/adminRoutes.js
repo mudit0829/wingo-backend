@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Bet = require('../models/bet');
+const Round = require('../models/round');
+const User = require('../models/user');
 
 // ✅ Profit/Loss Summary API - GET /api/admin/profitLoss
 router.get('/profitLoss', async (req, res) => {
@@ -54,4 +56,57 @@ router.post('/timer/stop', (req, res) => {
   res.json({ message: 'Timer stopped' });
 });
 
-module.exports = router;
+// ✅ Manual Result Control API - POST /api/admin/manualResult
+router.post('/manualResult', async (req, res) => {
+  try {
+    const { roundId, resultColor, resultNumber } = req.body;
+
+    if (!roundId || !resultColor || resultNumber === undefined) {
+      return res.status(400).json({ message: 'Missing fields' });
+    }
+
+    const round = await Round.findOne({ roundId });
+    if (!round) {
+      return res.status(404).json({ message: 'Round not found' });
+    }
+
+    // Overwrite Result
+    round.resultColor = resultColor;
+    round.resultNumber = resultNumber;
+    await round.save();
+
+    // Process Bets
+    const bets = await Bet.find({ roundId });
+
+    let winners = 0;
+    let totalDistributed = 0;
+
+    for (const bet of bets) {
+      let winAmount = 0;
+      const netAmount = bet.netAmount;
+
+      // Color Bet Logic
+      if (bet.colorBet) {
+        if (resultColor === 'Violet' && bet.colorBet === 'Violet') {
+          winAmount += Math.floor(netAmount * 4.5);
+        } else if (resultColor === bet.colorBet) {
+          if (resultNumber === 0 || resultNumber === 5) {
+            winAmount += Math.floor(netAmount * 1.5);
+          } else {
+            winAmount += Math.floor(netAmount * 2);
+          }
+        }
+      }
+
+      // Number Bet Logic
+      if (bet.numberBet != null && bet.numberBet === resultNumber) {
+        winAmount += Math.floor(netAmount * 9);
+      }
+
+      if (winAmount > 0) {
+        const user = await User.findOne({ email: bet.email });
+        if (user) {
+          user.wallet += winAmount;
+          await user.save();
+        }
+        bet.win = true;
