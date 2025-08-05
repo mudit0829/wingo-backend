@@ -9,18 +9,16 @@ router.get('/', async (req, res) => {
                               .sort({ startTime: -1 })
                               .limit(20);
 
-    // Ensure roundId is formatted
+    // Format Round IDs
     const formattedRounds = rounds.map(round => {
-      let formattedRoundId = round.roundId;
-      if (!formattedRoundId.startsWith('R-')) {
-        const date = new Date(round.startTime);
-        const yyyyMMdd = date.toISOString().split('T')[0].replace(/-/g, '');
+      let roundId = round.roundId;
+      if (!roundId.startsWith('R-')) {
         const suffix = String(round.roundId).slice(-5);
-        formattedRoundId = `R-${yyyyMMdd}-${suffix}`;
+        roundId = `R-${suffix}`;
       }
       return {
         ...round._doc,
-        roundId: formattedRoundId
+        roundId
       };
     });
 
@@ -32,7 +30,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ Get Upcoming Rounds with Pagination (Auto-generate if DB empty)
+// ✅ Get Upcoming Rounds (DB first, Virtual if Empty)
 router.get('/upcoming', async (req, res) => {
   try {
     const now = new Date();
@@ -46,16 +44,15 @@ router.get('/upcoming', async (req, res) => {
 
     let totalUpcoming = await Round.countDocuments({ startTime: { $gt: now } });
 
-    // Auto-generate virtual rounds if none exist
+    // If no upcoming rounds in DB → Generate Virtual Rounds
     if (upcomingRounds.length === 0) {
       upcomingRounds = [];
       const startTimestamp = now.getTime();
 
       for (let i = 0; i < pageSize; i++) {
         const futureTime = new Date(startTimestamp + ((page * pageSize + i) * 30000)); // 30s interval
-        const yyyyMMdd = futureTime.toISOString().split('T')[0].replace(/-/g, '');
         const suffix = String(Math.floor(futureTime.getTime() / 1000)).slice(-5);
-        const roundId = `R-${yyyyMMdd}-${suffix}`;
+        const roundId = `R-${suffix}`;
 
         upcomingRounds.push({
           roundId,
@@ -65,20 +62,18 @@ router.get('/upcoming', async (req, res) => {
         });
       }
 
-      totalUpcoming = 1000; // Simulate 1000 future rounds for pagination
+      totalUpcoming = 1000; // Simulated 1000 rounds
     } else {
-      // Format existing DB rounds properly
+      // Format DB fetched rounds
       upcomingRounds = upcomingRounds.map(round => {
-        let formattedRoundId = round.roundId;
-        if (!formattedRoundId.startsWith('R-')) {
-          const date = new Date(round.startTime);
-          const yyyyMMdd = date.toISOString().split('T')[0].replace(/-/g, '');
+        let roundId = round.roundId;
+        if (!roundId.startsWith('R-')) {
           const suffix = String(round.roundId).slice(-5);
-          formattedRoundId = `R-${yyyyMMdd}-${suffix}`;
+          roundId = `R-${suffix}`;
         }
         return {
           ...round._doc,
-          roundId: formattedRoundId
+          roundId
         };
       });
     }
