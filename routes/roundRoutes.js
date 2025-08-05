@@ -2,28 +2,13 @@ const express = require('express');
 const router = express.Router();
 const Round = require('../models/round');
 
-// Utility Function to Format Round ID
-function formatRoundId(round) {
-  const date = new Date(round.startTime);
-  const yyyyMMdd = date.toISOString().split('T')[0].replace(/-/g, '');
-  const suffix = String(round.roundId).slice(-5);
-  return `R-${yyyyMMdd}-${suffix}`;
-}
-
 // ✅ Get Latest 20 Rounds (For Game Page History)
 router.get('/', async (req, res) => {
   try {
     const rounds = await Round.find()
                               .sort({ startTime: -1 })
                               .limit(20);
-
-    const formattedRounds = rounds.map(round => ({
-      ...round._doc,
-      roundId: formatRoundId(round)
-    }));
-
-    res.json(formattedRounds);
-
+    res.json(rounds);
   } catch (err) {
     console.error('Fetch Rounds Error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -64,12 +49,6 @@ router.get('/upcoming', async (req, res) => {
       }
 
       totalUpcoming = 1000; // Simulated for pagination
-    } else {
-      // Format DB Rounds RoundID
-      upcomingRounds = upcomingRounds.map(round => ({
-        ...round._doc,
-        roundId: formatRoundId(round)
-      }));
     }
 
     res.json({
