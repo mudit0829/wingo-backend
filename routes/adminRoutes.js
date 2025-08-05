@@ -110,3 +110,30 @@ router.post('/manualResult', async (req, res) => {
           await user.save();
         }
         bet.win = true;
+        winners++;
+        totalDistributed += winAmount;
+      } else {
+        bet.win = false;
+      }
+
+      bet.resultNumber = resultNumber;
+      await bet.save();
+    }
+
+    res.json({
+      message: '✅ Manual Result Processed Successfully',
+      roundId,
+      resultColor,
+      resultNumber,
+      totalBets: bets.length,
+      winners,
+      totalDistributed
+    });
+
+  } catch (err) {
+    console.error('Manual Result Error:', err);
+    res.status(500).json({ message: 'Failed to process manual result' });
+  }
+});
+
+module.exports = router;
