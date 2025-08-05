@@ -11,15 +11,21 @@ async function generateFutureRounds() {
   const now = new Date();
   const rounds = [];
 
-  for (let i = 1; i <= 1000; i++) {
+  for (let i = 0; i < 1000; i++) {
+    const futureTime = new Date(now.getTime() + i * 30000); // every 30 seconds
+    const yyyyMMdd = futureTime.toISOString().split('T')[0].replace(/-/g, '');
+    const suffix = String(Math.floor(futureTime.getTime() / 1000)).slice(-5);
+    const roundId = `R-${yyyyMMdd}-${suffix}`;
+
     rounds.push({
-      roundId: `R${(i).toString().padStart(4, '0')}`,
-      startTime: new Date(now.getTime() + i * 30000), // every 30 seconds
+      roundId,
+      startTime: futureTime,
       resultNumber: null,
       resultColor: null
     });
   }
 
+  await Round.deleteMany({}); // Clear existing rounds
   await Round.insertMany(rounds);
   console.log(`✅ Inserted ${rounds.length} upcoming rounds`);
   mongoose.disconnect();
