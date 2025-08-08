@@ -6,7 +6,12 @@ const User = require('../models/user');
 // ✅ Place Bet - POST /api/bets
 router.post('/', async (req, res) => {
   try {
-    const { email, roundId, amount, colorBet, numberBet } = req.body;
+    // Accept both frontend format (color, number) and DB format (colorBet, numberBet)
+    let { email, roundId, amount, colorBet, numberBet, color, number } = req.body;
+
+    // Map color/number from frontend to colorBet/numberBet
+    if (!colorBet && color) colorBet = color;
+    if (numberBet === undefined && number !== undefined) numberBet = number;
 
     // Validate Request
     if (!email || !roundId || !amount) {
