@@ -3,16 +3,16 @@ const router = express.Router();
 const User = require('../models/user');
 const Bet = require('../models/bet');
 const Round = require('../models/round');
+const { protect } = require('../middleware/authenticate');
 
-// Get wallet by email
-router.get('/wallet/:email', async (req, res) => {
+// ✅ Get wallet for logged-in user
+router.get('/wallet', protect, async (req, res) => {
   try {
-    const email = req.params?.email;
-    if (!email) return res.status(400).json({ message: 'Email is required' });
-
+    const email = req.user.email;
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     res.json({ wallet: user.wallet });
   } catch (err) {
     console.error('Fetch Wallet Error:', err);
@@ -20,7 +20,7 @@ router.get('/wallet/:email', async (req, res) => {
   }
 });
 
-// Update wallet by amount
+// ✅ Update wallet (admin only or secure role check here)
 router.post('/wallet/update', async (req, res) => {
   try {
     const { email, amount } = req.body;
@@ -29,7 +29,9 @@ router.post('/wallet/update', async (req, res) => {
     }
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     user.wallet += amount;
     await user.save();
@@ -41,7 +43,7 @@ router.post('/wallet/update', async (req, res) => {
   }
 });
 
-// Admin Profit/Loss calculation
+// ✅ Profit/Loss Calculation
 router.get('/profit-loss', async (req, res) => {
   try {
     const bets = await Bet.find().lean();
@@ -55,12 +57,14 @@ router.get('/profit-loss', async (req, res) => {
       const round = roundMap[bet.roundId];
       const resultNumber = round ? round.resultNumber : null;
 
+      // Service fee (2%)
       const serviceFee = bet.amount - (bet.contractAmount ?? bet.amount);
       totalBets += bet.amount;
       totalServiceFee += serviceFee;
 
-      if (bet.win === true) {
+      if (bet.win === true && bet.contractAmount != null) {
         let winAmount = 0;
+
         if (bet.colorBet) {
           if (bet.colorBet === 'Red' && [2, 4, 6, 8, 0].includes(resultNumber))
             winAmount += bet.contractAmount * 2;
@@ -72,11 +76,13 @@ router.get('/profit-loss', async (req, res) => {
         if (bet.numberBet != null && bet.numberBet === resultNumber) {
           winAmount += bet.contractAmount * 9;
         }
+
         totalDistributed += winAmount;
       }
     });
 
     const profit = totalBets - totalDistributed;
+
     res.json({ totalBets, totalDistributed, totalServiceFee, profit });
   } catch (err) {
     console.error('Profit/Loss Error:', err);
