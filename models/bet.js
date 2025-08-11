@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 
 const betSchema = new mongoose.Schema({
-  email: { type: String, required: true }, // email identifies the user
-  roundId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Round',
+  email: { 
+    type: String, 
+    required: true 
+  },
+  // Use String because your round IDs are custom like "R-20250811-133530"
+  roundId: { 
+    type: String,
     required: true
   },
   colorBet: {
@@ -26,12 +29,12 @@ const betSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  netAmount: {              // Final profit/loss after settlement
+  netAmount: {               // profit/loss after settlement
     type: Number
   },
   win: {
     type: Boolean,
-    default: null            // null = pending, true = win, false = loss
+    default: null            // null: pending, true: win, false: lose
   },
   timestamp: {
     type: Date,
