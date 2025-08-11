@@ -6,46 +6,43 @@ const User = require("../models/user");
 // PLACE A BET
 const placeBet = asyncHandler(async (req, res) => {
   const { numberBet, colorBet, amount } = req.body;
-  const email = req.user.email;  // current logged-in user's email
+  const email = req.user.email;
 
-  // Find latest active round
   const round = await Round.findOne().sort({ createdAt: -1 });
   if (!round) throw new Error("No active round found");
 
-  // Ensure your Round model has a string identifier
-  // If your Round schema has roundId field with "R-..." as value
-  const roundIdString = round.roundId || round._id.toString();
-
-  // Find user by email
   const user = await User.findOne({ email });
   if (!user || user.wallet < amount) throw new Error("Insufficient balance");
 
-  // Fee is fixed at 2
   const contractAmount = amount - 2;
 
-  // Deduct wallet
+  // Deduct immediately
   user.wallet -= amount;
   await user.save();
 
-  // Save bet with string roundId
   const bet = new Bet({
     email,
-    roundId: roundIdString,
-    numberBet,
-    colorBet,
+    roundId: round.roundId,  // string field
+    numberBet: numberBet ?? null,
+    colorBet: colorBet ?? null,
     amount,
     contractAmount,
     win: null
   });
+
   await bet.save();
 
-  res.status(201).json(bet);
+  res.status(201).json({
+    message: 'Bet placed successfully',
+    bet,
+    newWalletBalance: user.wallet
+  });
 });
 
 // GET ALL BETS for current user
 const getAllBets = asyncHandler(async (req, res) => {
   const bets = await Bet.find({ email: req.user.email })
-    .sort({ createdAt: -1 });
+    .sort({ timestamp: -1 });
   res.json(bets);
 });
 
