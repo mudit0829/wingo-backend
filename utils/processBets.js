@@ -1,44 +1,50 @@
-// utils/processBets.js
-
 const Bet = require('../models/bet');
 const User = require('../models/user');
 
-const processBets = async (roundId, result) => {
-  const bets = await Bet.find({ roundId });
-  const winningColor = result.color;
-  const winningNumber = result.number;
+async function processBets(roundId, result) {
+  const bets = await Bet.find({ roundId }).populate('user');
+  const winningColor = result.color;    // 'Red', 'Green', 'Violet'
+  const winningNumber = result.number;  // 0-9
 
   for (const bet of bets) {
-    const effectiveAmount = bet.amount * 0.98;
+    const amount = bet.amount;
+    const contractAmount = bet.contractAmount || (amount - 2);
     let payout = 0;
+    let win = false;
 
-    // Color bet evaluation
-    if (bet.color && bet.color === winningColor) {
-      if ((winningColor === 'Green' && winningNumber === 5) || (winningColor === 'Red' && winningNumber === 0)) {
-        payout += effectiveAmount * 1.5;
-      } else {
-        payout += effectiveAmount * 2;
+    // Color bets
+    if (bet.colorBet) {
+      if (bet.colorBet === 'Red' && [2, 4, 6, 8, 0].includes(winningNumber)) {
+        payout = contractAmount * 2;
+        win = true;
+      }
+      if (bet.colorBet === 'Green' && [1, 3, 7, 9, 5].includes(winningNumber)) {
+        payout = contractAmount * 2;
+        win = true;
+      }
+      if (bet.colorBet === 'Violet' && [0, 5].includes(winningNumber)) {
+        payout = contractAmount * 4.5;
+        win = true;
       }
     }
 
-    // Violet payout special case
-    if (bet.color === 'Violet' && (winningNumber === 0 || winningNumber === 5)) {
-      payout += effectiveAmount * 4.5;
+    // Number bets
+    if (typeof bet.numberBet === 'number' && bet.numberBet === winningNumber) {
+      payout = contractAmount * 9;
+      win = true;
     }
 
-    // Number bet evaluation
-    if (typeof bet.number === 'number' && bet.number === winningNumber) {
-      payout += effectiveAmount * 9;
-    }
+    // Update bet outcome
+    bet.win = win;
+    bet.netAmount = win ? payout : -amount;
+    await bet.save();
 
-    if (payout > 0) {
-      const user = await User.findOne({ email: bet.email });
-      if (user) {
-        user.wallet += payout;
-        await user.save();
-      }
+    // Credit user if win
+    if (win && payout > 0) {
+      bet.user.wallet += payout;
+      await bet.user.save();
     }
   }
-};
+}
 
 module.exports = processBets;
