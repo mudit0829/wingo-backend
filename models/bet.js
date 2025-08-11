@@ -1,15 +1,8 @@
 const mongoose = require('mongoose');
 
 const betSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: true
-  },
-  // Use String because your round IDs are custom like "R-20250811-133530"
-  roundId: {
-    type: String,
-    required: true
-  },
+  email: { type: String, required: true },
+  roundId: { type: String, required: true }, // custom string ID like "R-YYYYMMDD-HHMMSS"
   colorBet: {
     type: String,
     enum: ['Red', 'Green', 'Violet', null],
@@ -21,25 +14,11 @@ const betSchema = new mongoose.Schema({
     max: 9,
     default: null
   },
-  amount: {                 // original bet placed
-    type: Number,
-    required: true
-  },
-  contractAmount: {         // amount minus fee (2)
-    type: Number,
-    required: true
-  },
-  netAmount: {              // profit (+) or loss (-) after result
-    type: Number
-  },
-  win: {
-    type: Boolean,
-    default: null
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
+  amount: { type: Number, required: true },
+  contractAmount: { type: Number, required: true }, // amount - fee (2)
+  netAmount: { type: Number },
+  win: { type: Boolean, default: null },
+  timestamp: { type: Date, default: Date.now }
 });
 
 module.exports = mongoose.model('Bet', betSchema);
