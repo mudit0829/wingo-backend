@@ -2,21 +2,19 @@ const Bet = require('../models/bet');
 const User = require('../models/user');
 
 /**
- * Process all bets for a given round string ID like "R-20250811-133530"
- * and the result object: { number: 7, color: 'Red' }
+ * Process all bets for a round string ID like "R-20250811-133530"
+ * result = { number: <0-9>, color: 'Red'|'Green'|'Violet' }
  */
 async function processBets(roundIdString, result) {
   const bets = await Bet.find({ roundId: roundIdString });
   const winningNumber = result.number;
 
   for (const bet of bets) {
-    const amount = bet.amount;
-    const contractAmount = bet.contractAmount || (amount - 2);
-
+    const contractAmount = bet.contractAmount || (bet.amount - 2);
     let payout = 0;
     let win = false;
 
-    // COLOR BET LOGIC
+    // ----- COLOR BET -----
     if (bet.colorBet) {
       if (bet.colorBet === 'Red' && [2, 4, 6, 8, 0].includes(winningNumber)) {
         payout = contractAmount * 2;
@@ -26,24 +24,24 @@ async function processBets(roundIdString, result) {
         payout = contractAmount * 2;
         win = true;
       }
-      if (bet.colorBet === 'Violet' && (winningNumber === 0 || winningNumber === 5)) {
+      if (bet.colorBet === 'Violet' && [0, 5].includes(winningNumber)) {
         payout = contractAmount * 4.5;
         win = true;
       }
     }
 
-    // NUMBER BET LOGIC
+    // ----- NUMBER BET -----
     if (typeof bet.numberBet === 'number' && bet.numberBet === winningNumber) {
       payout = contractAmount * 9;
       win = true;
     }
 
-    // Update bet status & net amount
+    // Update bet doc
     bet.win = win;
-    bet.netAmount = win ? payout : -amount;
+    bet.netAmount = win ? payout : -bet.amount;
     await bet.save();
 
-    // Credit wallet if win
+    // Credit winner's wallet
     if (win && payout > 0) {
       const user = await User.findOne({ email: bet.email });
       if (user) {
