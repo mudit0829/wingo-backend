@@ -6,10 +6,12 @@ async function processBets(roundIdString, result) {
   const winningNumber = result.number;
 
   for (const bet of bets) {
-    const contractAmount = bet.contractAmount || (bet.amount - 2);
+    // fallback uses 2% fee if contractAmount missing
+    const contractAmount = bet.contractAmount || (bet.amount - (bet.amount * 0.02));
     let payout = 0;
     let win = false;
 
+    // ----- COLOR BET -----
     if (bet.colorBet) {
       if (bet.colorBet === 'Red' && [2, 4, 6, 8, 0].includes(winningNumber)) {
         payout = contractAmount * 2;
@@ -25,6 +27,7 @@ async function processBets(roundIdString, result) {
       }
     }
 
+    // ----- NUMBER BET -----
     if (typeof bet.numberBet === 'number' && bet.numberBet === winningNumber) {
       payout = contractAmount * 9;
       win = true;
@@ -34,6 +37,7 @@ async function processBets(roundIdString, result) {
     bet.netAmount = win ? payout : -bet.amount;
     await bet.save();
 
+    // Credit winner wallet
     if (win && payout > 0) {
       const user = await User.findOne({ email: bet.email });
       if (user) {
