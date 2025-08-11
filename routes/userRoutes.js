@@ -6,7 +6,12 @@ const Bet = require('../models/bet');
 // ✅ Get user wallet by email
 router.get('/wallet/:email', async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.params.email });
+    const email = req.params?.email;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -21,16 +26,22 @@ router.get('/wallet/:email', async (req, res) => {
 router.post('/wallet/update', async (req, res) => {
   try {
     const { email, amount } = req.body;
-    const user = await User.findOne({ email });
+    if (!email || typeof amount !== 'number') {
+      return res.status(400).json({ message: 'Email and amount are required' });
+    }
 
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.wallet += amount;  // Can be positive (add) or negative (deduct)
+    user.wallet += amount; // Can be positive (add) or negative (deduct)
     await user.save();
 
-    res.json({ message: 'Wallet updated successfully', wallet: user.wallet });
+    res.json({
+      message: 'Wallet updated successfully',
+      wallet: user.wallet
+    });
   } catch (err) {
     console.error('Update Wallet Error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -47,29 +58,30 @@ router.get('/profit-loss', async (req, res) => {
     let totalServiceFee = 0;
 
     bets.forEach(bet => {
-      const serviceFee = bet.amount - bet.netAmount;
+      // Service fee is amount minus contract amount
+      const serviceFee = bet.amount - (bet.contractAmount ?? bet.amount);
       totalBets += bet.amount;
       totalServiceFee += serviceFee;
 
       if (bet.win === true) {
         let winAmount = 0;
 
-        // Color Bet Payout Calculation
+        // ---- Color bet payout ----
         if (bet.colorBet) {
-          if (bet.colorBet === 'Violet' && (bet.resultColor === 'Violet')) {
-            winAmount += Math.floor(bet.netAmount * 4.5);
-          } else if (bet.colorBet === bet.resultColor) {
-            if (bet.resultNumber === 0 || bet.resultNumber === 5) {
-              winAmount += Math.floor(bet.netAmount * 1.5);
-            } else {
-              winAmount += Math.floor(bet.netAmount * 2);
-            }
+          if (bet.colorBet === 'Red' && [2, 4, 6, 8, 0].includes(bet.roundResultNumber)) {
+            winAmount += bet.contractAmount * 2;
+          }
+          if (bet.colorBet === 'Green' && [1, 3, 7, 9, 5].includes(bet.roundResultNumber)) {
+            winAmount += bet.contractAmount * 2;
+          }
+          if (bet.colorBet === 'Violet' && [0, 5].includes(bet.roundResultNumber)) {
+            winAmount += bet.contractAmount * 4.5;
           }
         }
 
-        // Number Bet Payout Calculation
-        if (bet.numberBet != null && bet.numberBet === bet.resultNumber) {
-          winAmount += Math.floor(bet.netAmount * 9);
+        // ---- Number bet payout ----
+        if (bet.numberBet != null && bet.numberBet === bet.roundResultNumber) {
+          winAmount += bet.contractAmount * 9;
         }
 
         totalDistributed += winAmount;
