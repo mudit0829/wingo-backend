@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
 const Bet = require('../models/bet');
+const Round = require('../models/round');
 
 // ✅ Get user wallet by email
 router.get('/wallet/:email', async (req, res) => {
@@ -27,7 +28,7 @@ router.post('/wallet/update', async (req, res) => {
   try {
     const { email, amount } = req.body;
     if (!email || typeof amount !== 'number') {
-      return res.status(400).json({ message: 'Email and amount are required' });
+      return res.status(400).json({ message: 'Email and numeric amount are required' });
     }
 
     const user = await User.findOne({ email });
@@ -35,7 +36,7 @@ router.post('/wallet/update', async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.wallet += amount; // Can be positive (add) or negative (deduct)
+    user.wallet += amount; // positive (credit) or negative (debit)
     await user.save();
 
     res.json({
@@ -48,45 +49,57 @@ router.post('/wallet/update', async (req, res) => {
   }
 });
 
-// ✅ Profit/Loss Calculation API (For Admin Panel)
+// ✅ Improved Profit/Loss Calculation API (For Admin Panel)
 router.get('/profit-loss', async (req, res) => {
   try {
-    const bets = await Bet.find();
+    // Fetch all bets
+    const bets = await Bet.find().lean();
+
+    // Get all roundIds referenced by bets
+    const roundIds = [...new Set(bets.map(bet => bet.roundId))];
+
+    // Fetch rounds for those roundIds
+    const rounds = await Round.find({ roundId: { $in: roundIds } }).lean();
+    const roundMap = Object.fromEntries(rounds.map(r => [r.roundId, r]));
 
     let totalBets = 0;
     let totalDistributed = 0;
     let totalServiceFee = 0;
 
-    bets.forEach(bet => {
-      // Service fee is amount minus contract amount
+    for (const bet of bets) {
+      const round = roundMap[bet.roundId];
+      const resultNumber = round ? round.resultNumber : null;
+      const resultColor = round ? round.resultColor : null;
+
+      // Calculate service fee
       const serviceFee = bet.amount - (bet.contractAmount ?? bet.amount);
       totalBets += bet.amount;
       totalServiceFee += serviceFee;
 
-      if (bet.win === true) {
+      if (bet.win === true && bet.contractAmount != null) {
         let winAmount = 0;
 
-        // ---- Color bet payout ----
+        // ---- Color Bet Payout ----
         if (bet.colorBet) {
-          if (bet.colorBet === 'Red' && [2, 4, 6, 8, 0].includes(bet.roundResultNumber)) {
+          if (bet.colorBet === 'Red' && [2, 4, 6, 8, 0].includes(resultNumber)) {
             winAmount += bet.contractAmount * 2;
           }
-          if (bet.colorBet === 'Green' && [1, 3, 7, 9, 5].includes(bet.roundResultNumber)) {
+          if (bet.colorBet === 'Green' && [1, 3, 7, 9, 5].includes(resultNumber)) {
             winAmount += bet.contractAmount * 2;
           }
-          if (bet.colorBet === 'Violet' && [0, 5].includes(bet.roundResultNumber)) {
+          if (bet.colorBet === 'Violet' && [0, 5].includes(resultNumber)) {
             winAmount += bet.contractAmount * 4.5;
           }
         }
 
-        // ---- Number bet payout ----
-        if (bet.numberBet != null && bet.numberBet === bet.roundResultNumber) {
+        // ---- Number Bet Payout ----
+        if (bet.numberBet != null && bet.numberBet === resultNumber) {
           winAmount += bet.contractAmount * 9;
         }
 
         totalDistributed += winAmount;
       }
-    });
+    }
 
     const profit = totalBets - totalDistributed;
 
@@ -96,7 +109,6 @@ router.get('/profit-loss', async (req, res) => {
       totalServiceFee,
       profit
     });
-
   } catch (err) {
     console.error('Profit/Loss Error:', err);
     res.status(500).json({ message: 'Failed to calculate profit/loss' });
