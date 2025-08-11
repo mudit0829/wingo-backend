@@ -12,17 +12,26 @@ const placeBet = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Email and amount are required" });
   }
 
+  // Find latest active round
   const round = await Round.findOne().sort({ createdAt: -1 });
   if (!round) throw new Error("No active round found");
+
+  // --- NEW: Enforce 25 second cutoff ---
+  const secondsSinceStart = (Date.now() - new Date(round.startTime).getTime()) / 1000;
+  if (secondsSinceStart > 25) {
+    return res.status(400).json({ message: "Betting closed for this round" });
+  }
 
   const user = await User.findOne({ email });
   if (!user || user.wallet < amount) throw new Error("Insufficient balance");
 
-  const contractAmount = amount - 2; // fee
+  const contractAmount = amount - 2; // fixed fee
 
+  // Deduct immediately
   user.wallet -= amount;
   await user.save();
 
+  // Save bet
   const bet = new Bet({
     email,
     roundId: round.roundId,
@@ -42,13 +51,14 @@ const placeBet = asyncHandler(async (req, res) => {
   });
 });
 
-// GET ALL BETS
+// GET ALL BETS (history with round results)
 const getAllBets = asyncHandler(async (req, res) => {
   const email = req.params?.email || req.query?.email || req.user?.email;
   if (!email) return res.status(400).json({ message: "Email is required" });
 
   const bets = await Bet.find({ email }).sort({ timestamp: -1 }).lean();
 
+  // Populate round info
   const roundIds = bets.map(b => b.roundId);
   const rounds = await Round.find({ roundId: { $in: roundIds } }).lean();
   const roundMap = Object.fromEntries(rounds.map(r => [r.roundId, r]));
