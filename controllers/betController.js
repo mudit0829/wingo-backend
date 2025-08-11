@@ -3,7 +3,7 @@ const Bet = require("../models/bet");
 const Round = require("../models/round");
 const User = require("../models/user");
 
-// PLACE A BET — login required
+// PLACE A BET — must be logged in
 const placeBet = asyncHandler(async (req, res) => {
   const { numberBet, colorBet, amount } = req.body;
   const email = req.user.email; // always from logged-in user
@@ -24,10 +24,12 @@ const placeBet = asyncHandler(async (req, res) => {
   }
 
   const user = await User.findOne({ email });
-  if (!user || user.wallet < amount)
+  if (!user || user.wallet < amount) {
     throw new Error("Insufficient balance");
+  }
 
-  const contractAmount = amount - 2; // fixed fee
+  // 2% service fee
+  const contractAmount = amount - (amount * 0.02);
 
   // Deduct wallet immediately
   user.wallet -= amount;
@@ -54,4 +56,27 @@ const placeBet = asyncHandler(async (req, res) => {
 });
 
 // GET ALL BETS for current user (history with round results)
-const getAllBets =
+const getAllBets = asyncHandler(async (req, res) => {
+  const email = req.user.email; // only show own bets
+
+  const bets = await Bet.find({ email }).sort({ timestamp: -1 }).lean();
+
+  // Populate round info
+  const roundIds = bets.map((b) => b.roundId);
+  const rounds = await Round.find({ roundId: { $in: roundIds } }).lean();
+  const roundMap = Object.fromEntries(rounds.map((r) => [r.roundId, r]));
+
+  const betsWithRoundData = bets.map((bet) => {
+    const round = roundMap[bet.roundId];
+    return {
+      ...bet,
+      roundResultNumber: round ? round.resultNumber : null,
+      roundResultColor: round ? round.resultColor : null,
+      roundStartTime: round ? round.startTime : null
+    };
+  });
+
+  res.json(betsWithRoundData);
+});
+
+module.exports = { placeBet, getAllBets };
