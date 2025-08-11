@@ -1,10 +1,6 @@
 const Bet = require('../models/bet');
 const User = require('../models/user');
 
-/**
- * Process all bets for a round string ID like "R-20250811-133530"
- * result = { number: <0-9>, color: 'Red'|'Green'|'Violet' }
- */
 async function processBets(roundIdString, result) {
   const bets = await Bet.find({ roundId: roundIdString });
   const winningNumber = result.number;
@@ -14,7 +10,6 @@ async function processBets(roundIdString, result) {
     let payout = 0;
     let win = false;
 
-    // ----- COLOR BET -----
     if (bet.colorBet) {
       if (bet.colorBet === 'Red' && [2, 4, 6, 8, 0].includes(winningNumber)) {
         payout = contractAmount * 2;
@@ -30,18 +25,15 @@ async function processBets(roundIdString, result) {
       }
     }
 
-    // ----- NUMBER BET -----
     if (typeof bet.numberBet === 'number' && bet.numberBet === winningNumber) {
       payout = contractAmount * 9;
       win = true;
     }
 
-    // Update bet doc
     bet.win = win;
     bet.netAmount = win ? payout : -bet.amount;
     await bet.save();
 
-    // Credit winner's wallet
     if (win && payout > 0) {
       const user = await User.findOne({ email: bet.email });
       if (user) {
