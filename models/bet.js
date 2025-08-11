@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const betSchema = new mongoose.Schema({
-  email: { 
-    type: String, 
-    required: true 
+  email: {
+    type: String,
+    required: true
   },
   // Use String because your round IDs are custom like "R-20250811-133530"
-  roundId: { 
+  roundId: {
     type: String,
     required: true
   },
@@ -21,20 +21,20 @@ const betSchema = new mongoose.Schema({
     max: 9,
     default: null
   },
-  amount: {                 // Original bet placed
+  amount: {                 // original bet placed
     type: Number,
     required: true
   },
-  contractAmount: {         // amount minus 2 fee
+  contractAmount: {         // amount minus fee (2)
     type: Number,
     required: true
   },
-  netAmount: {               // profit/loss after settlement
+  netAmount: {              // profit (+) or loss (-) after result
     type: Number
   },
   win: {
     type: Boolean,
-    default: null            // null: pending, true: win, false: lose
+    default: null
   },
   timestamp: {
     type: Date,
