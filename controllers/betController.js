@@ -19,20 +19,29 @@ const placeBet = async (req, res) => {
     }
 
     // Ensure only ONE bet type
-    const chosenTypes = [colorBet ? 1 : 0, numberBet != null ? 1 : 0, bigSmallBet ? 1 : 0].reduce((a, b) => a + b, 0);
+    const chosenTypes = [colorBet ? 1 : 0, numberBet != null ? 1 : 0, bigSmallBet ? 1 : 0]
+      .reduce((a, b) => a + b, 0);
     if (chosenTypes !== 1) {
       return res.status(400).json({ message: "Select only one bet type" });
     }
 
     // Validate bets
     const allowedColors = ['Red', 'Green', 'Violet'];
-    if (colorBet && !allowedColors.includes(colorBet)) return res.status(400).json({ message: "Invalid color" });
-    if (numberBet != null && (numberBet < 0 || numberBet > 9)) return res.status(400).json({ message: "Invalid number" });
-    if (bigSmallBet && !['Big', 'Small'].includes(bigSmallBet)) return res.status(400).json({ message: "Invalid Big/Small" });
+    if (colorBet && !allowedColors.includes(colorBet)) {
+      return res.status(400).json({ message: "Invalid color" });
+    }
+    if (numberBet != null && (numberBet < 0 || numberBet > 9)) {
+      return res.status(400).json({ message: "Invalid number" });
+    }
+    if (bigSmallBet && !['Big', 'Small'].includes(bigSmallBet)) {
+      return res.status(400).json({ message: "Invalid Big/Small" });
+    }
 
     // Get current round for the game type
     const currentRound = await Round.findOne({ gameType }).sort({ startTime: -1 });
-    if (!currentRound) return res.status(400).json({ message: "No active round for this game" });
+    if (!currentRound) {
+      return res.status(400).json({ message: "No active round for this game" });
+    }
 
     // Cut-off check (allow betting only until 5s before round ends)
     const now = Date.now();
@@ -47,7 +56,9 @@ const placeBet = async (req, res) => {
     if (!user) return res.status(400).json({ message: "User not found" });
 
     // Check balance
-    if (user.wallet < amount) return res.status(400).json({ message: "Insufficient wallet balance" });
+    if (user.wallet < amount) {
+      return res.status(400).json({ message: "Insufficient wallet balance" });
+    }
 
     // Deduct & save user wallet
     user.wallet -= amount;
@@ -72,7 +83,10 @@ const placeBet = async (req, res) => {
     });
     await betDoc.save();
 
-    return res.json({ message: "Bet placed successfully", newWalletBalance: user.wallet });
+    return res.json({
+      message: "Bet placed successfully",
+      newWalletBalance: user.wallet
+    });
 
   } catch (err) {
     console.error("💥 [SERVER ERROR PLACING BET]", err);
@@ -80,9 +94,16 @@ const placeBet = async (req, res) => {
   }
 };
 
+// ✅ Updated getAllBets with gameType filter
 const getAllBets = async (req, res) => {
   try {
-    const bets = await Bet.find({ email: req.user.email }).sort({ timestamp: -1 });
+    const { gameType } = req.query;
+    const filter = { email: req.user.email };
+    if (gameType && ['WIN30', 'WIN1', 'WIN3', 'WIN5'].includes(gameType)) {
+      filter.gameType = gameType;
+    }
+
+    const bets = await Bet.find(filter).sort({ timestamp: -1 });
     res.json(bets);
   } catch (err) {
     console.error("💥 Error fetching bets:", err);
