@@ -8,51 +8,49 @@ const Round = require('../models/round');
  */
 const placeBet = async (req, res) => {
   try {
-    console.log("\n==== [BET REQUEST RECEIVED] ====");
+    console.log("\n== [BET REQUEST RECEIVED] ==");
     console.log("req.user:", req.user);
     console.log("Request body:", req.body);
 
     const { colorBet, numberBet, amount } = req.body;
 
-    // 1️⃣ Validate amount
+    // ✅ 1 - Validate amount
     if (!amount || typeof amount !== 'number' || amount <= 0) {
       console.log("❌ Invalid amount");
       return res.status(400).json({ message: "Bet amount must be greater than 0" });
     }
 
-    // 2️⃣ Validate bet type: only one is allowed
+    // ✅ 2 - Validate bet type: only one is allowed
     if ((colorBet && numberBet != null) || (!colorBet && numberBet == null)) {
       console.log("❌ Invalid bet type (both or none)");
       return res.status(400).json({ message: "Select only color OR number" });
     }
 
-    // 3️⃣ Validate color
+    // ✅ 3 - Validate color
     const allowedColors = ['Red', 'Green', 'Violet'];
     if (colorBet && !allowedColors.includes(colorBet)) {
       console.log("❌ Invalid color:", colorBet);
       return res.status(400).json({ message: "Invalid color selected" });
     }
 
-    // 4️⃣ Validate number
+    // ✅ 4 - Validate number
     if (numberBet != null && (numberBet < 0 || numberBet > 9)) {
       console.log("❌ Invalid number:", numberBet);
       return res.status(400).json({ message: "Invalid number selected" });
     }
 
-    // 5️⃣ Fetch latest round
+    // ✅ 5 - Fetch latest round
     const currentRound = await Round.findOne().sort({ startTime: -1 });
     if (!currentRound) {
       console.log("❌ No active round found in DB");
       return res.status(400).json({ message: "No active round" });
     }
-
     console.log(`Fetched round: ${currentRound.roundId}, startTime=${currentRound.startTime}`);
 
-    // 6️⃣ Timing check
+    // ✅ 6 - Timing check (max 25 sec)
     const now = Date.now();
     const roundStart = new Date(currentRound.startTime).getTime();
     const elapsed = now - roundStart;
-
     console.log("🕒 Now:", new Date(now).toISOString());
     console.log("🕒 Round start:", new Date(roundStart).toISOString());
     console.log("⏱ Elapsed seconds:", (elapsed / 1000).toFixed(2));
@@ -62,35 +60,36 @@ const placeBet = async (req, res) => {
       return res.status(400).json({ message: "Betting closed for this round" });
     }
 
-    // 7️⃣ Fetch user from DB
+    // ✅ 7 - Fetch user from DB
     console.log("Looking up user by ID:", req.user?._id);
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user?._id);
     if (!user) {
       console.log("❌ User not found in DB");
       return res.status(400).json({ message: "User not found" });
     }
-
     console.log(`💰 User wallet before bet: ${user.wallet}`);
 
-    // 8️⃣ Check wallet balance
+    // ✅ 8 - Check wallet balance
     if (user.wallet < amount) {
       console.log(`❌ Insufficient funds: Wallet=${user.wallet}, Bet=${amount}`);
       return res.status(400).json({ message: "Insufficient wallet balance" });
     }
 
-    // 9️⃣ Deduct and save user
+    // ✅ 9 - Deduct amount & save user
     user.wallet -= amount;
     console.log(`Wallet after deduction: ${user.wallet}`);
     await user.save();
     console.log("✅ User wallet updated in DB");
 
-    // 🔟 Create and save bet
+    // ✅ 10 - Create and save bet
     const betDoc = new Bet({
       user: user._id,
+      email: user.email,                 // Added for schema requirement
       roundId: currentRound.roundId,
       colorBet: colorBet || null,
       numberBet: numberBet ?? null,
-      amount,
+      contractAmount: amount,            // Added for schema requirement
+      amount,                             // If you still keep 'amount' in schema
       timestamp: new Date()
     });
 
@@ -98,7 +97,7 @@ const placeBet = async (req, res) => {
     await betDoc.save();
     console.log("✅ Bet saved in DB");
 
-    // 1️⃣1️⃣ Respond success
+    // ✅ 11 - Respond success
     return res.json({
       message: "Bet placed successfully",
       newWalletBalance: user.wallet
@@ -106,8 +105,10 @@ const placeBet = async (req, res) => {
 
   } catch (err) {
     console.error("💥 [SERVER ERROR PLACING BET]", err);
-    if (err.stack) console.error(err.stack);
-    return res.status(500).json({ message: "Server error placing bet" });
+    return res.status(500).json({
+      message: "Server error placing bet",
+      error: err.message
+    });
   }
 };
 
@@ -121,7 +122,6 @@ const getAllBets = async (req, res) => {
     res.json(bets);
   } catch (err) {
     console.error("💥 Error fetching bets:", err);
-    if (err.stack) console.error(err.stack);
     res.status(500).json({ message: "Server error fetching bets" });
   }
 };
