@@ -23,7 +23,13 @@ async function cleanupOldRounds() {
 async function startNewRound(gameType) {
   try {
     const now = new Date();
-    const roundId = `${gameType}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+    // ✅ Include milliseconds for uniqueness
+    const roundId = `${gameType}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(
+      now.getDate()
+    ).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(
+      2,
+      '0'
+    )}${String(now.getSeconds()).padStart(2, '0')}${String(now.getMilliseconds()).padStart(3, '0')}`;
 
     const newRound = new Round({ gameType, roundId, startTime: now });
     await newRound.save();
@@ -51,7 +57,7 @@ async function endRound(round) {
 
     console.log(`🎯 [${round.gameType}] Result: ${round.roundId} -> Num: ${result.number}, Color: ${result.color}`);
 
-    // Pass full round doc so processBets can filter bets for the right game type
+    // Pass the whole round so processBets can filter by gameType
     await processBets(round);
   } catch (err) {
     console.error(`❌ Error ending round ${round.roundId}:`, err);
@@ -62,19 +68,21 @@ function startGameLoop() {
   console.log('🔁 Starting Multi‑Game Loop...');
   cleanupOldRounds();
 
-  // Start each game type independently
-  Object.entries(GAME_DURATIONS).forEach(([gameType, duration]) => {
-    (async () => {
-      let currentRound = await startNewRound(gameType);
+  // Start each game type with a slight delay so they don't share the same second
+  Object.entries(GAME_DURATIONS).forEach(([gameType, duration], index) => {
+    setTimeout(() => {
+      (async () => {
+        let currentRound = await startNewRound(gameType);
 
-      setInterval(async () => {
-        console.log(`⏳ [${gameType}] Betting window open for ${(duration / 1000) - 5}s`);
-        await new Promise(res => setTimeout(res, duration - 5000));
+        setInterval(async () => {
+          console.log(`⏳ [${gameType}] Betting window open for ${(duration / 1000) - 5}s`);
+          await new Promise(res => setTimeout(res, duration - 5000));
 
-        await endRound(currentRound);
-        currentRound = await startNewRound(gameType);
-      }, duration);
-    })();
+          await endRound(currentRound);
+          currentRound = await startNewRound(gameType);
+        }, duration);
+      })();
+    }, index * 2000); // stagger: each loop starts 2 secs after previous
   });
 }
 
