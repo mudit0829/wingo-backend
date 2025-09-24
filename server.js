@@ -16,10 +16,18 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = ['https://mudit0829.github.io'];
+// Add your frontend domains and subdomains here
+const allowedOrigins = [
+  'https://mudit0829.github.io',
+  'http://wingogames.in',
+  'https://wingogames.in',
+  'http://www.wingogames.in',
+  'https://www.wingogames.in'
+];
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (like Postman, mobile apps)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
