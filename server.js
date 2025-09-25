@@ -10,13 +10,14 @@ const userRoutes = require('./routes/userRoutes');
 const cronRoutes = require('./routes/cronRoutes');
 const adminResetRoute = require('./routes/adminResetRoute');
 const adminRoutes = require('./routes/adminRoutes');
+const shoppingIntegrationRoutes = require('./routes/shoppingIntegrationRoutes'); // New route import
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Add your frontend domains and subdomains here
+// Allowed origins (update with your domains)
 const allowedOrigins = [
   'https://mudit0829.github.io',
   'http://wingogames.in',
@@ -27,7 +28,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like Postman, mobile apps)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -47,6 +47,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/reset', adminResetRoute);
 app.use('/api/admin', adminRoutes);
+
+// New Shopping integration routes
+app.use('/api/shopping', shoppingIntegrationRoutes);
 
 // Health Check Route
 app.get('/', (req, res) => {
