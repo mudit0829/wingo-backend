@@ -6,6 +6,9 @@ const userSchema = mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+
+    // New field for shopping points balance
+    shoppingPoints: { type: Number, default: 0 }
   },
   { timestamps: true }
 );
