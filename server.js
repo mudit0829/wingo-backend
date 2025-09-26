@@ -10,7 +10,7 @@ const userRoutes = require('./routes/userRoutes');
 const cronRoutes = require('./routes/cronRoutes');
 const adminResetRoute = require('./routes/adminResetRoute');
 const adminRoutes = require('./routes/adminRoutes');
-const shoppingIntegrationRoutes = require('./routes/shoppingIntegrationRoutes'); // New route import
+const shoppingIntegrationRoutes = require('./routes/shoppingIntegrationRoutes');
 
 dotenv.config();
 
@@ -48,7 +48,7 @@ app.use('/api/cron', cronRoutes);
 app.use('/api/reset', adminResetRoute);
 app.use('/api/admin', adminRoutes);
 
-// New Shopping integration routes
+// Shopping integration APIs
 app.use('/api/shopping', shoppingIntegrationRoutes);
 
 // Health Check Route
