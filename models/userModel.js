@@ -27,6 +27,7 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-const User = mongoose.model('User', userSchema);
+// Fix to avoid OverwriteModelError: use existing model if already compiled
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 module.exports = User;
