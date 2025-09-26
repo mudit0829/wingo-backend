@@ -145,4 +145,78 @@ router.get('/reports', protect, admin, async (req, res) => {
 
     const dateFilter = {};
     if (startDate) dateFilter.$gte = new Date(startDate);
-    if (endDate) dateFilter.$lte = new Date
+    if (endDate) dateFilter.$lte = new Date(endDate);
+
+    const RechargeLog = require('../models/rechargeLog');
+    const RedeemLog = require('../models/redeemLog');
+
+    // Get total recharge amount
+    const totalRechargeAgg = await RechargeLog.aggregate([
+      { $match: { date: dateFilter } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalRecharge = totalRechargeAgg[0]?.total || 0;
+
+    // Get total redeemed amount
+    const totalRedeemAgg = await RedeemLog.aggregate([
+      { $match: { date: dateFilter } },
+      { $group: { _id: null, total: { $sum: '$points' } } }
+    ]);
+    const totalRedeem = totalRedeemAgg[0]?.total || 0;
+
+    // User counts (active, inactive, total)
+    const activeUsersCount = await User.countDocuments({ walletBalance: { $gt: 0 } });
+    const inactiveUsersCount = await User.countDocuments({ walletBalance: 0 });
+    const totalUsersCount = await User.countDocuments();
+
+    // Fetch profitLoss (reuse /profitLoss route internal logic or compute here)
+    const profitLossData = {
+      totalBets: 0,
+      totalPayouts: 0,
+      profit: 0
+    };
+
+    res.json({
+      totalRecharge,
+      totalRedeem,
+      activeUsers: activeUsersCount,
+      inactiveUsers: inactiveUsersCount,
+      totalUsers: totalUsersCount,
+      profitLoss: profitLossData
+    });
+  } catch (err) {
+    console.error('Admin reports error:', err);
+    res.status(500).json({ message: 'Server error fetching admin reports' });
+  }
+});
+
+// New API Route: POST /api/admin/updateUserRole
+// Allows admin to update a user's role by email
+router.post('/updateUserRole', protect, admin, async (req, res) => {
+  try {
+    const { email, newRole } = req.body;
+    if (!email || !newRole) {
+      return res.status(400).json({ error: 'Email and newRole are required' });
+    }
+
+    const validRoles = ['user', 'agent', 'admin'];
+    if (!validRoles.includes(newRole)) {
+      return res.status(400).json({ error: 'Invalid role specified' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.role = newRole;
+    await user.save();
+
+    return res.json({ success: true, message: `User role updated to ${newRole}`, user });
+  } catch (err) {
+    console.error('UpdateUserRole error:', err);
+    res.status(500).json({ error: 'Server error updating user role' });
+  }
+});
+
+module.exports = router;
