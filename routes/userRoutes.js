@@ -90,4 +90,50 @@ router.get('/profit-loss', async (req, res) => {
   }
 });
 
+// ✅ Redeem endpoint (PROTECTED from errors in main game logic)
+router.post('/redeem', protect, async (req, res) => {
+  try {
+    const email = req.user.email;
+    const redeemPoints = Number(req.body.points);
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    // Default values for new fields if not present (for safe upgrade)
+    user.initialRecharge = user.initialRecharge || 0;
+    user.totalLostFromRecharge = user.totalLostFromRecharge || 0;
+    user.wallet = user.wallet || 0;
+    user.redeemHistory = user.redeemHistory || [];
+
+    // Calculate protected base (cannot be redeemed)
+    const protectedBase = user.initialRecharge - user.totalLostFromRecharge;
+    const redeemable = user.wallet - protectedBase > 0 ? user.wallet - protectedBase : 0;
+
+    if (redeemPoints <= 0 || redeemPoints > redeemable) {
+      return res.status(400).json({ error: 'Redeem amount invalid! Only winnings above protected recharge base can be redeemed.' });
+    }
+
+    // Subtract redeem amount from wallet and log the redemption
+    user.wallet -= redeemPoints;
+    user.redeemHistory.push({
+      date: new Date(),
+      points: redeemPoints,
+    });
+
+    await user.save();
+
+    res.json({
+      success: true,
+      redeemed: redeemPoints,
+      wallet: user.wallet,
+      redeemableLeft: user.wallet - protectedBase > 0 ? user.wallet - protectedBase : 0,
+      history: user.redeemHistory
+    });
+  } catch (err) {
+    console.error('Redeem Error:', err);
+    res.status(500).json({ error: 'Server error during redeem.' });
+  }
+});
+
 module.exports = router;
