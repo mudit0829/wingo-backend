@@ -3,9 +3,12 @@ const router = express.Router();
 const Bet = require('../models/bet');
 const Round = require('../models/round');
 const User = require('../models/user');
+const RechargeLog = require('../models/rechargeLog');
+const RedeemLog = require('../models/redeemLog');
+const { protect, admin } = require('../middleware/authenticate');
 
-// ✅ Profit/Loss Summary API - GET /api/admin/profitLoss
-router.get('/profitLoss', async (req, res) => {
+// Profit/Loss Summary API - GET /api/admin/profitLoss
+router.get('/profitLoss', protect, admin, async (req, res) => {
   try {
     const bets = await Bet.find({ win: { $ne: null } });
 
@@ -45,19 +48,18 @@ router.get('/profitLoss', async (req, res) => {
   }
 });
 
-// ✅ Timer Control APIs (Demo Only)
-router.post('/timer/start', (req, res) => {
+// Timer Control APIs (Demo Only)
+router.post('/timer/start', protect, admin, (req, res) => {
   console.log('Timer Started');
   res.json({ message: 'Timer started' });
 });
-
-router.post('/timer/stop', (req, res) => {
+router.post('/timer/stop', protect, admin, (req, res) => {
   console.log('Timer Stopped');
   res.json({ message: 'Timer stopped' });
 });
 
-// ✅ Manual Result Control API - POST /api/admin/manualResult
-router.post('/manualResult', async (req, res) => {
+// Manual Result Control API - POST /api/admin/manualResult
+router.post('/manualResult', protect, admin, async (req, res) => {
   try {
     const { roundId, resultColor, resultNumber } = req.body;
 
@@ -136,4 +138,57 @@ router.post('/manualResult', async (req, res) => {
   }
 });
 
+// Admin Reports Route - GET /api/admin/reports?startDate=yyyy-mm-dd&endDate=yyyy-mm-dd
+router.get('/reports', protect, admin, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const dateFilter = {};
+    if (startDate) dateFilter.$gte = new Date(startDate);
+    if (endDate) dateFilter.$lte = new Date(endDate);
+
+    // Import your models here if out of scope
+    const RechargeLog = require('../models/rechargeLog');
+    const RedeemLog = require('../models/redeemLog');
+
+    // Get total recharge amount
+    const totalRechargeAgg = await RechargeLog.aggregate([
+      { $match: { date: dateFilter } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalRecharge = totalRechargeAgg[0]?.total || 0;
+
+    // Get total redeemed amount
+    const totalRedeemAgg = await RedeemLog.aggregate([
+      { $match: { date: dateFilter } },
+      { $group: { _id: null, total: { $sum: '$points' } } }
+    ]);
+    const totalRedeem = totalRedeemAgg[0]?.total || 0;
+
+    // User counts (active, inactive, total)
+    const activeUsersCount = await User.countDocuments({ walletBalance: { $gt: 0 } });
+    const inactiveUsersCount = await User.countDocuments({ walletBalance: 0 });
+    const totalUsersCount = await User.countDocuments();
+
+    // Fetch profitLoss (reuse /profitLoss route internal logic or compute here)
+    // Here we just mimic by calling internal function (replace with your logic)
+    const profitLossData = {
+      totalBets: 0,
+      totalPayouts: 0,
+      profit: 0
+    };
+
+    res.json({
+      totalRecharge,
+      totalRedeem,
+      activeUsers: activeUsersCount,
+      inactiveUsers: inactiveUsersCount,
+      totalUsers: totalUsersCount,
+      profitLoss: profitLossData
+    });
+  } catch (err) {
+    console.error('Admin reports error:', err);
+    res.status(500).json({ message: 'Server error fetching admin reports' });
+  }
+});
 module.exports = router;
