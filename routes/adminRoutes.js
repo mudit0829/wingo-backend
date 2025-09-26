@@ -190,8 +190,8 @@ router.get('/reports', protect, admin, async (req, res) => {
   }
 });
 
-// New API Route: POST /api/admin/updateUserRole
-// Allows admin to update a user's role by email
+// API Route: POST /api/admin/updateUserRole
+// Allows admin to update a user's role based on email
 router.post('/updateUserRole', protect, admin, async (req, res) => {
   try {
     const { email, newRole } = req.body;
@@ -216,6 +216,29 @@ router.post('/updateUserRole', protect, admin, async (req, res) => {
   } catch (err) {
     console.error('UpdateUserRole error:', err);
     res.status(500).json({ error: 'Server error updating user role' });
+  }
+});
+
+// Temporary route to fix role for users without admin middleware
+router.post('/setRoleTemporary', protect, async (req, res) => {
+  try {
+    const { email, role } = req.body;
+    if (!email || !role) return res.status(400).json({ error: 'Email and role required' });
+
+    const validRoles = ['user', 'agent', 'admin'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role specified' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.role = role;
+    await user.save();
+
+    res.json({ message: `Role updated to ${role}`, user });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
