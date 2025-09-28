@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   wallet: { type: Number, default: 1000 },
   agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   salaryEarned: { type: Number, default: 0 },
-  role: { type: String, default: 'user' } // add role with default
+  role: { type: String, default: 'user' } // User role added
 });
 
 module.exports = mongoose.model('User', userSchema);
