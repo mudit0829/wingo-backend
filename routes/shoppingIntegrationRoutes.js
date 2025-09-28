@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/user');
 const RechargeLog = require('../models/rechargeLog');
-const authenticateAdminOrShop = require('../middleware/authenticateAdminOrShop');
+const authenticateShoppingJWT = require('../middleware/authenticateShoppingJWT');
 
-// Recharge API - add points to wallet, log recharge, pay agent commission
-router.post('/addPoints', authenticateAdminOrShop, async (req, res) => {
+// Recharge API - Add points to user's wallet, log recharge, pay commission
+router.post('/addPoints', authenticateShoppingJWT, async (req, res) => {
   try {
     const { userId, points } = req.body;
     if (!userId || !points || points <= 0) {
@@ -17,13 +17,12 @@ router.post('/addPoints', authenticateAdminOrShop, async (req, res) => {
 
     // Add points to wallet
     user.wallet = (user.wallet || 0) + points;
-
     await user.save();
 
     // Log recharge
     await RechargeLog.create({ userId, amount: points });
 
-    // Pay 10% to agent if exists
+    // Pay 10% commission to agent
     if (user.agentId) {
       const agent = await User.findById(user.agentId);
       if (agent) {
@@ -40,8 +39,8 @@ router.post('/addPoints', authenticateAdminOrShop, async (req, res) => {
   }
 });
 
-// Redeem API - reduce shoppingPoints, assuming shopping site syncs payout
-router.post('/redeemPoints', authenticateAdminOrShop, async (req, res) => {
+// Redeem API - Reduce wallet balance; payout handled by shopping site
+router.post('/redeemPoints', authenticateShoppingJWT, async (req, res) => {
   try {
     const { userId, points } = req.body;
     if (!userId || !points || points <= 0) {
@@ -55,11 +54,11 @@ router.post('/redeemPoints', authenticateAdminOrShop, async (req, res) => {
       return res.status(400).json({ error: 'Not enough wallet balance to redeem' });
     }
 
-    // Reduce wallet balance
+    // Deduct wallet balance
     user.wallet -= points;
     await user.save();
 
-    // TODO: notify shopping site or payout system to process real cashout
+    // TODO: Notify shopping/payout system here
 
     res.json({ success: true, wallet: user.wallet });
 
