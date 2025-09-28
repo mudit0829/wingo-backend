@@ -5,7 +5,7 @@ const Bet = require('../models/bet');
 const Round = require('../models/round');
 const { protect } = require('../middleware/authenticate');
 
-// Get wallet for logged-in user
+// Get wallet for logged-in user, include redeem history if exists
 router.get('/wallet', protect, async (req, res) => {
   try {
     const email = req.user.email;
@@ -13,7 +13,10 @@ router.get('/wallet', protect, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json({ wallet: user.wallet });
+    res.json({ 
+      wallet: user.wallet,
+      redeemHistory: user.redeemHistory || []
+    });
   } catch (err) {
     console.error('Fetch Wallet Error:', err);
     res.status(500).json({ message: 'Server error' });
@@ -114,7 +117,7 @@ router.post('/redeem', protect, async (req, res) => {
 
     // Deduct redeem amount and log
     user.wallet -= redeemPoints;
-    user.redeemHistory.push({
+    user.redeemHistory.unshift({
       date: new Date(),
       points: redeemPoints,
     });
@@ -126,7 +129,7 @@ router.post('/redeem', protect, async (req, res) => {
       redeemed: redeemPoints,
       wallet: user.wallet,
       redeemableLeft: user.wallet - protectedBase > 0 ? user.wallet - protectedBase : 0,
-      history: user.redeemHistory
+      redeemHistory: user.redeemHistory
     });
   } catch (err) {
     console.error('Redeem Error:', err);
