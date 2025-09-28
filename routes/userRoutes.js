@@ -20,7 +20,7 @@ router.get('/wallet', protect, async (req, res) => {
   }
 });
 
-// Update wallet (should be admin only, add middleware in your full implementation)
+// Update wallet (admin only - add protect & role check middleware)
 router.post('/wallet/update', async (req, res) => {
   try {
     const { email, amount } = req.body;
@@ -131,6 +131,35 @@ router.post('/redeem', protect, async (req, res) => {
   } catch (err) {
     console.error('Redeem Error:', err);
     res.status(500).json({ error: 'Server error during redeem.' });
+  }
+});
+
+// Get user profile info (name, email, wallet, role)
+router.get('/profile', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password -__v');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    console.error('Get profile error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update user profile (only name for now)
+router.put('/profile', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.name = req.body.name || user.name;
+    // Add other fields here if needed
+
+    await user.save();
+    res.json({ message: 'Profile updated successfully' });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
