@@ -5,7 +5,7 @@ const Bet = require('../models/bet');
 const Round = require('../models/round');
 const { protect } = require('../middleware/authenticate');
 
-// ✅ Get wallet for logged-in user
+// Get wallet for logged-in user
 router.get('/wallet', protect, async (req, res) => {
   try {
     const email = req.user.email;
@@ -20,7 +20,7 @@ router.get('/wallet', protect, async (req, res) => {
   }
 });
 
-// ✅ Update wallet (admin only or secure role check here)
+// Update wallet (should be admin only, add middleware in your full implementation)
 router.post('/wallet/update', async (req, res) => {
   try {
     const { email, amount } = req.body;
@@ -43,7 +43,7 @@ router.post('/wallet/update', async (req, res) => {
   }
 });
 
-// ✅ Profit/Loss Calculation
+// Profit/Loss Calculation
 router.get('/profit-loss', async (req, res) => {
   try {
     const bets = await Bet.find().lean();
@@ -57,7 +57,6 @@ router.get('/profit-loss', async (req, res) => {
       const round = roundMap[bet.roundId];
       const resultNumber = round ? round.resultNumber : null;
 
-      // Service fee (2%)
       const serviceFee = bet.amount - (bet.contractAmount ?? bet.amount);
       totalBets += bet.amount;
       totalServiceFee += serviceFee;
@@ -90,7 +89,7 @@ router.get('/profit-loss', async (req, res) => {
   }
 });
 
-// ✅ Redeem endpoint (PROTECTED from errors in main game logic)
+// Redeem points for user (protected)
 router.post('/redeem', protect, async (req, res) => {
   try {
     const email = req.user.email;
@@ -100,13 +99,12 @@ router.post('/redeem', protect, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    // Default values for new fields if not present (for safe upgrade)
+    // Initialize new fields if not yet present
     user.initialRecharge = user.initialRecharge || 0;
     user.totalLostFromRecharge = user.totalLostFromRecharge || 0;
     user.wallet = user.wallet || 0;
     user.redeemHistory = user.redeemHistory || [];
 
-    // Calculate protected base (cannot be redeemed)
     const protectedBase = user.initialRecharge - user.totalLostFromRecharge;
     const redeemable = user.wallet - protectedBase > 0 ? user.wallet - protectedBase : 0;
 
@@ -114,7 +112,7 @@ router.post('/redeem', protect, async (req, res) => {
       return res.status(400).json({ error: 'Redeem amount invalid! Only winnings above protected recharge base can be redeemed.' });
     }
 
-    // Subtract redeem amount from wallet and log the redemption
+    // Deduct redeem amount and log
     user.wallet -= redeemPoints;
     user.redeemHistory.push({
       date: new Date(),
