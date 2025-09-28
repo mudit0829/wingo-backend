@@ -115,12 +115,10 @@ router.post('/redeem', protect, async (req, res) => {
       return res.status(400).json({ error: 'Redeem amount invalid! Only winnings above protected recharge base can be redeemed.' });
     }
 
-    // Deduct redeem amount and log
+    // Instead of unshift, assign new array for Mongoose detection
+    user.redeemHistory = [{ date: new Date(), points: redeemPoints }, ...user.redeemHistory];
+
     user.wallet -= redeemPoints;
-    user.redeemHistory.unshift({
-      date: new Date(),
-      points: redeemPoints,
-    });
 
     await user.save();
 
