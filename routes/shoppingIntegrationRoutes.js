@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/userModel');  // update path if needed
-const authenticateAdminOrShop = require('../middleware/authenticateAdminOrShop'); // See next
+const User = require('../models/user');
+const RechargeLog = require('../models/rechargeLog');
+const authenticateAdminOrShop = require('../middleware/authenticateAdminOrShop');
 
-// Add points purchased on shopping site
+// Recharge API - add points to wallet, log recharge, pay agent commission
 router.post('/addPoints', authenticateAdminOrShop, async (req, res) => {
   try {
     const { userId, points } = req.body;
@@ -14,17 +15,32 @@ router.post('/addPoints', authenticateAdminOrShop, async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    user.shoppingPoints = (user.shoppingPoints || 0) + points;
+    // Add points to wallet
+    user.wallet = (user.wallet || 0) + points;
+
     await user.save();
 
-    res.json({ success: true, shoppingPoints: user.shoppingPoints });
+    // Log recharge
+    await RechargeLog.create({ userId, amount: points });
+
+    // Pay 10% to agent if exists
+    if (user.agentId) {
+      const agent = await User.findById(user.agentId);
+      if (agent) {
+        agent.salaryEarned = (agent.salaryEarned || 0) + points * 0.10;
+        await agent.save();
+      }
+    }
+
+    res.json({ success: true, wallet: user.wallet });
+
   } catch (err) {
     console.error('Error in /addPoints:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Redeem points synced to shopping wallet
+// Redeem API - reduce shoppingPoints, assuming shopping site syncs payout
 router.post('/redeemPoints', authenticateAdminOrShop, async (req, res) => {
   try {
     const { userId, points } = req.body;
@@ -35,16 +51,18 @@ router.post('/redeemPoints', authenticateAdminOrShop, async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if ((user.shoppingPoints || 0) < points) {
-      return res.status(400).json({ error: 'Not enough shopping points to redeem' });
+    if ((user.wallet || 0) < points) {
+      return res.status(400).json({ error: 'Not enough wallet balance to redeem' });
     }
 
-    user.shoppingPoints -= points;
+    // Reduce wallet balance
+    user.wallet -= points;
     await user.save();
 
-    // TODO: Call actual shopping wallet API here to sync redeem points
+    // TODO: notify shopping site or payout system to process real cashout
 
-    res.json({ success: true, shoppingPoints: user.shoppingPoints });
+    res.json({ success: true, wallet: user.wallet });
+
   } catch (err) {
     console.error('Error in /redeemPoints:', err);
     res.status(500).json({ error: 'Internal server error' });
