@@ -24,6 +24,46 @@ router.get('/users', protect, admin, async (req, res) => {
   }
 });
 
+// Create new user (admin only)
+router.post('/users', protect, admin, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' });
+    
+    // Check if user already exists
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: 'User already exists' });
+
+    const user = new User({ email, password }); // Add password hash logic if applicable
+    await user.save();
+
+    res.status(201).json({ message: 'User created successfully', user });
+  } catch (err) {
+    console.error('Error creating user:', err);
+    res.status(500).json({ message: 'Failed to create user' });
+  }
+});
+
+// Update user wallet (admin only)
+router.post('/users/:id/wallet', protect, admin, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (typeof amount !== 'number' && typeof amount !== 'string') {
+      return res.status(400).json({ message: 'Invalid amount' });
+    }
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.wallet = (user.wallet || 0) + Number(amount);
+    await user.save();
+
+    res.json({ message: 'Wallet updated', wallet: user.wallet });
+  } catch (err) {
+    console.error('Error updating wallet:', err);
+    res.status(500).json({ message: 'Failed to update wallet' });
+  }
+});
+
 // Get list of agents
 router.get('/agents', protect, admin, async (req, res) => {
   try {
@@ -70,7 +110,6 @@ router.get('/profitLoss', protect, admin, async (req, res) => {
       if (bet.win) {
         let payout = 0;
 
-        // Color Bet Logic
         if (bet.colorBet === 'Red' || bet.colorBet === 'Green') {
           if (bet.resultNumber === 0 || bet.resultNumber === 5) {
             payout = bet.netAmount * 1.5;
@@ -81,7 +120,6 @@ router.get('/profitLoss', protect, admin, async (req, res) => {
           payout = bet.netAmount * 4.5;
         }
 
-        // Number Bet Logic
         if (bet.numberBet != null && bet.numberBet === bet.resultNumber) {
           payout += bet.netAmount * 9;
         }
@@ -122,12 +160,10 @@ router.post('/manualResult', protect, admin, async (req, res) => {
       return res.status(404).json({ message: 'Round not found' });
     }
 
-    // Overwrite Result
     round.resultColor = resultColor;
     round.resultNumber = resultNumber;
     await round.save();
 
-    // Process Bets
     const bets = await Bet.find({ roundId });
 
     let winners = 0;
@@ -137,7 +173,6 @@ router.post('/manualResult', protect, admin, async (req, res) => {
       let winAmount = 0;
       const netAmount = bet.netAmount;
 
-      // Color Bet Logic
       if (bet.colorBet) {
         if (resultColor === 'Violet' && bet.colorBet === 'Violet') {
           winAmount += Math.floor(netAmount * 4.5);
@@ -149,8 +184,6 @@ router.post('/manualResult', protect, admin, async (req, res) => {
           }
         }
       }
-
-      // Number Bet Logic
       if (bet.numberBet != null && bet.numberBet === resultNumber) {
         winAmount += Math.floor(netAmount * 9);
       }
@@ -197,26 +230,23 @@ router.get('/reports', protect, admin, async (req, res) => {
     if (startDate) dateFilter.$gte = new Date(startDate);
     if (endDate) dateFilter.$lte = new Date(endDate);
 
-    // Get total recharge amount
     const totalRechargeAgg = await RechargeLog.aggregate([
       { $match: { date: dateFilter } },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
     const totalRecharge = totalRechargeAgg[0]?.total || 0;
 
-    // Get total redeemed amount
     const totalRedeemAgg = await RedeemLog.aggregate([
       { $match: { date: dateFilter } },
       { $group: { _id: null, total: { $sum: '$points' } } }
     ]);
     const totalRedeem = totalRedeemAgg[0]?.total || 0;
 
-    // User counts (active, inactive, total)
+    // User counts
     const activeUsersCount = await User.countDocuments({ walletBalance: { $gt: 0 } });
     const inactiveUsersCount = await User.countDocuments({ walletBalance: 0 });
     const totalUsersCount = await User.countDocuments();
 
-    // Optional profitLoss reuse or empty summary here
     const profitLossData = {
       totalBets: 0,
       totalPayouts: 0,
@@ -238,7 +268,6 @@ router.get('/reports', protect, admin, async (req, res) => {
 });
 
 // API Route: POST /api/admin/updateUserRole
-// Allows admin to update a user's role based on email
 router.post('/updateUserRole', protect, admin, async (req, res) => {
   try {
     const { email, newRole } = req.body;
@@ -266,7 +295,7 @@ router.post('/updateUserRole', protect, admin, async (req, res) => {
   }
 });
 
-// Temporary route to fix role for users without admin middleware
+// Temporary route to fix role without admin middleware
 router.post('/setRoleTemporary', protect, async (req, res) => {
   try {
     const { email, role } = req.body;
