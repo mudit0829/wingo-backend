@@ -147,9 +147,6 @@ router.get('/reports', protect, admin, async (req, res) => {
     if (startDate) dateFilter.$gte = new Date(startDate);
     if (endDate) dateFilter.$lte = new Date(endDate);
 
-    const RechargeLog = require('../models/rechargeLog');
-    const RedeemLog = require('../models/redeemLog');
-
     // Get total recharge amount
     const totalRechargeAgg = await RechargeLog.aggregate([
       { $match: { date: dateFilter } },
@@ -169,7 +166,7 @@ router.get('/reports', protect, admin, async (req, res) => {
     const inactiveUsersCount = await User.countDocuments({ walletBalance: 0 });
     const totalUsersCount = await User.countDocuments();
 
-    // Fetch profitLoss (reuse /profitLoss route internal logic or compute here)
+    // Optional profitLoss reuse or empty summary here
     const profitLossData = {
       totalBets: 0,
       totalPayouts: 0,
@@ -239,6 +236,79 @@ router.post('/setRoleTemporary', protect, async (req, res) => {
     res.json({ message: `Role updated to ${role}`, user });
   } catch (error) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Admin Recharge User Wallet
+router.post('/recharge', protect, admin, async (req, res) => {
+  try {
+    const { email, amount, remark } = req.body;
+    if (!email || !amount) return res.status(400).json({ message: 'Email and amount required' });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.wallet = (user.wallet || 0) + Number(amount);
+    await user.save();
+
+    await RechargeLog.create({
+      email,
+      amount: Number(amount),
+      date: new Date(),
+      remark: remark || 'Admin Recharge'
+    });
+
+    res.json({ message: `Recharge successful`, wallet: user.wallet });
+  } catch (err) {
+    console.error('Admin recharge error:', err);
+    res.status(500).json({ message: 'Recharge failed' });
+  }
+});
+
+// Admin Redeem User Points
+router.post('/redeem', protect, admin, async (req, res) => {
+  try {
+    const { email, points, remark } = req.body;
+    if (!email || !points) return res.status(400).json({ message: 'Email and points required' });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if ((user.wallet || 0) < Number(points)) {
+      return res.status(400).json({ message: 'Insufficient balance' });
+    }
+
+    user.wallet -= Number(points);
+    await user.save();
+
+    await RedeemLog.create({
+      email,
+      points: Number(points),
+      date: new Date(),
+      remark: remark || 'Admin Redeem'
+    });
+
+    res.json({ message: `Redeem successful`, wallet: user.wallet });
+  } catch (err) {
+    console.error('Admin redeem error:', err);
+    res.status(500).json({ message: 'Redeem failed' });
+  }
+});
+
+// Admin Get Recharge Logs
+router.get('/rechargeLogs', protect, admin, async (req, res) => {
+  try {
+    const logs = await RechargeLog.find({}).sort({ date: -1 }).limit(100);
+    res.json({ logs });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch recharge logs' });
+  }
+});
+
+// Admin Get Redeem Logs
+router.get('/redeemLogs', protect, admin, async (req, res) => {
+  try {
+    const logs = await RedeemLog.find({}).sort({ date: -1 }).limit(100);
+    res.json({ logs });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch redeem logs' });
   }
 });
 
