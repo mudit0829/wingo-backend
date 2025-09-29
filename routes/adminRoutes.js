@@ -7,6 +7,56 @@ const RechargeLog = require('../models/rechargeLog');
 const RedeemLog = require('../models/redeemLog');
 const { protect, admin } = require('../middleware/authenticate');
 
+// Get list of users for admin panel, optionally filter by email
+router.get('/users', protect, admin, async (req, res) => {
+  try {
+    const email = req.query.email;
+    let users;
+    if (email) {
+      users = await User.find({ email: new RegExp(email, 'i') });
+    } else {
+      users = await User.find({});
+    }
+    res.json(users);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ message: 'Failed to fetch users' });
+  }
+});
+
+// Get list of agents
+router.get('/agents', protect, admin, async (req, res) => {
+  try {
+    const agents = await User.find({ role: 'agent' });
+    res.json(agents);
+  } catch (err) {
+    console.error('Error fetching agents:', err);
+    res.status(500).json({ message: 'Failed to fetch agents' });
+  }
+});
+
+// Get list of rounds
+router.get('/rounds', protect, admin, async (req, res) => {
+  try {
+    const rounds = await Round.find({});
+    res.json(rounds);
+  } catch (err) {
+    console.error('Error fetching rounds:', err);
+    res.status(500).json({ message: 'Failed to fetch rounds' });
+  }
+});
+
+// Get list of bets
+router.get('/bets', protect, admin, async (req, res) => {
+  try {
+    const bets = await Bet.find({});
+    res.json(bets);
+  } catch (err) {
+    console.error('Error fetching bets:', err);
+    res.status(500).json({ message: 'Failed to fetch bets' });
+  }
+});
+
 // Profit/Loss Summary API - GET /api/admin/profitLoss
 router.get('/profitLoss', protect, admin, async (req, res) => {
   try {
