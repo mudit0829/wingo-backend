@@ -12,6 +12,7 @@ const adminResetRoute = require('./routes/adminResetRoute');
 const adminRoutes = require('./routes/adminRoutes');
 const shoppingIntegrationRoutes = require('./routes/shoppingIntegrationRoutes');
 const agentRoutes = require('./routes/agentRoutes'); // Added agent panel routes
+const transactionRoute = require('./routes/transactionRoute'); // New transaction route
 
 dotenv.config();
 
@@ -54,6 +55,9 @@ app.use('/api/shopping', shoppingIntegrationRoutes);
 
 // Agent panel API routes
 app.use('/api/agent', agentRoutes); // Register agent routes here
+
+// New transaction routes
+app.use('/api/transactions', transactionRoute);
 
 // Health Check Route
 app.get('/', (req, res) => {
